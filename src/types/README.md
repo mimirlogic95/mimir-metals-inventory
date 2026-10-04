@@ -1,23 +1,23 @@
 # Supabase Database Types
 
-The generated Supabase schema type will live at:
+The Supabase schema type generated from the linked development database lives at:
 
 ```text
 src/types/database.generated.ts
 ```
 
-That file is intentionally absent in Mission 2 because this repository is not linked to a remote Supabase project and a local Supabase/PostgreSQL runtime is not available. Do not hand-author a file and label it as generated.
+It was generated after the repository migration executed successfully against the dedicated Supabase development project. Do not edit it manually or replace it with hand-authored database shapes.
 
-After the migration has been applied to a local Supabase instance, generate the type from the database that actually ran it:
-
-```bash
-npx supabase gen types typescript --local --schema public > src/types/database.generated.ts
-```
-
-For a linked development project, use its project ID instead:
+After any schema migration is applied, regenerate the type from the database that actually ran it:
 
 ```bash
-npx supabase gen types typescript --project-id <project-id> --schema public > src/types/database.generated.ts
+npx --yes supabase@2.119.0 gen types typescript --linked --schema public > src/types/database.generated.ts
 ```
 
-Application data-access modules should import `Database` from that generated module once it exists. The generated file should not be edited manually.
+For a local Supabase runtime, use:
+
+```bash
+npx --yes supabase@2.119.0 gen types typescript --local --schema public > src/types/database.generated.ts
+```
+
+The shared Supabase client imports `Database` from this module so future data-access code receives schema-generated types at the boundary.

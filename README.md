@@ -250,6 +250,43 @@ Supabase Auth manages authentication separately.
 
 ---
 
+## Supabase Development Database
+
+A dedicated Supabase Cloud development project is used to execute migrations, seed fictional data, validate database rules, and generate TypeScript database types. It is not a production or customer database.
+
+Authenticate and link each checkout locally:
+
+```bash
+npx --yes supabase@2.119.0 login
+npx --yes supabase@2.119.0 projects list --output pretty
+npx --yes supabase@2.119.0 link --project-ref <development-project-ref>
+```
+
+Project-link metadata is stored under the ignored `supabase/.temp/` directory. Before applying changes, verify the linked project name and preview pending migrations:
+
+```bash
+npx --yes supabase@2.119.0 migration list --linked
+npx --yes supabase@2.119.0 db push --linked --dry-run
+```
+
+Apply reviewed migrations and, for a development database only, the fictional seed:
+
+```bash
+npx --yes supabase@2.119.0 db push --linked
+npx --yes supabase@2.119.0 db push --linked --include-seed
+```
+
+Run the rollback-only database foundation validation and regenerate database types after schema changes:
+
+```bash
+npx --yes supabase@2.119.0 db query --linked --file supabase/tests/database_foundation.sql
+npx --yes supabase@2.119.0 gen types typescript --linked --schema public > src/types/database.generated.ts
+```
+
+Copy `.env.example` to an ignored local `.env` when browser configuration is needed. Keep `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` local; never commit real environment values, database passwords, access tokens, service-role keys, or production credentials.
+
+---
+
 ## Worker and Supervisor Roles
 
 ### Worker

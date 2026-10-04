@@ -954,6 +954,20 @@ Security tests must include:
 
 ---
 
+# Database Foundation Validation
+
+The linked Supabase development database can run the rollback-only foundation test directly against PostgreSQL:
+
+```text
+npx --yes supabase@2.119.0 db query --linked --file supabase/tests/database_foundation.sql
+```
+
+The script uses fictional temporary records and rolls back all test changes. It verifies schema objects, packing and inventory arithmetic, hold consistency, historical foreign-key restrictions, idempotency, rack capacity, shared packing/staging capacity, RLS visibility, and browser-role write restrictions.
+
+Never run database validation against an unknown project. Confirm the linked project is the intended development environment first.
+
+---
+
 # Data Integrity Testing
 
 Verify:

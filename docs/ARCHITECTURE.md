@@ -918,7 +918,7 @@ Suggested environments:
 
 Developer machine.
 
-Uses local or dedicated development Supabase data.
+Uses local or dedicated development Supabase data. The repository has been validated against a dedicated Supabase Cloud development project; each checkout links locally through ignored CLI metadata.
 
 ---
 

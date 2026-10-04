@@ -1,14 +1,16 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { z } from 'zod';
 
+import type { Database } from '../../types/database.generated';
+
 const supabaseConfigSchema = z.object({
   url: z.string().url(),
   anonKey: z.string().min(1),
 });
 
-let supabaseClient: SupabaseClient | undefined;
+let supabaseClient: SupabaseClient<Database> | undefined;
 
-export function getSupabaseClient(): SupabaseClient {
+export function getSupabaseClient(): SupabaseClient<Database> {
   if (supabaseClient) {
     return supabaseClient;
   }
@@ -24,6 +26,6 @@ export function getSupabaseClient(): SupabaseClient {
     );
   }
 
-  supabaseClient = createClient(config.data.url, config.data.anonKey);
+  supabaseClient = createClient<Database>(config.data.url, config.data.anonKey);
   return supabaseClient;
 }
