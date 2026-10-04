@@ -824,6 +824,8 @@ Nullable foreign key to:
 
 A newly created pallet may temporarily have no rack location.
 
+For `rack` locations, no more than one pallet whose lifecycle is not `shipped` may reference the same location. Pallets in `packing` and `shipping_staging` locations may share a location.
+
 ---
 
 ### lifecycle_status
@@ -855,6 +857,26 @@ Type:
 Nullable.
 
 Only meaningful when the pallet is on hold.
+
+---
+
+### lifecycle_status_before_hold
+
+Type:
+
+The same enum or constrained text used by `lifecycle_status`.
+
+Nullable.
+
+When `lifecycle_status` is `on_hold`, this stores the prior eligible lifecycle state:
+
+- `created`
+- `stored`
+- `shipping_staging`
+
+The protected hold-release operation restores this value and then clears it. This prevents a hold from losing whether the pallet was awaiting storage, stored in a rack, or already in shipping staging.
+
+The value must be null whenever the pallet is not on hold.
 
 ---
 
@@ -1645,7 +1667,11 @@ Do not create advanced warehouse optimization in V1.
 
 # Location Occupancy
 
-For standard V1 rack locations, avoid maintaining two unrelated truths such as:
+For V1, a location with `location_type = rack` may contain only one active pallet. An active pallet for this rule is any pallet whose lifecycle status is not `shipped`, including a pallet that is on hold.
+
+Locations with `location_type = packing` or `location_type = shipping_staging` may contain multiple active pallets. Pallets with no current location and shipped pallets do not occupy rack capacity.
+
+Avoid maintaining two unrelated truths such as:
 
 `locations.status = occupied`
 
@@ -1659,7 +1685,20 @@ Preferred approach:
 
 - Pallet assignment is the source of truth.
 - Occupancy is derived by querying active pallets at a location.
+- A database trigger locks the affected `locations` rows and rejects a second active pallet assigned to a rack.
+- Changing a shared location to `rack` is rejected while it contains more than one active pallet.
+- Future protected Store and Move RPCs must lock the pallet first, lock the source and destination location rows in stable ID order, and recheck destination occupancy before updating the pallet and inserting history.
 - If a cached location status is later added for performance, it must be maintained transactionally.
+
+A partial unique index on `pallets.current_location_id` cannot express this rule because `location_type` belongs to `locations`. A global unique constraint would also incorrectly prevent multiple pallets in packing and shipping staging.
+
+When a rack is occupied, the worker-facing error is:
+
+**LOCATION OCCUPIED**
+
+`B-003-AC already contains a pallet.`
+
+`Scan another location.`
 
 ---
 

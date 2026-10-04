@@ -223,6 +223,18 @@ Assign a pallet to a physical warehouse location.
 11. The app updates the pallet's current location.
 12. A success screen confirms the action.
 
+## Rack Capacity Rule
+
+Before committing storage, the future protected Store operation must lock the pallet, lock the destination location, and recheck its current occupancy. A normal rack accepts only one active pallet. Packing and shipping staging locations may contain multiple pallets.
+
+If another active pallet already occupies the rack, storage is rejected and the worker sees:
+
+**LOCATION OCCUPIED**
+
+`B-003-AC already contains a pallet.`
+
+`Scan another location.`
+
 ## Example
 
 Pallet:
@@ -361,6 +373,8 @@ Move a pallet from one storage location to another while preserving movement his
 8. The app records a **MOVE** transaction.
 9. The app updates the pallet's current location.
 10. A success screen confirms the move.
+
+Before committing a move, the future protected Move operation must lock the pallet, lock the source and destination locations in stable ID order, and recheck destination occupancy. It must reject an occupied rack while allowing multiple pallets in packing or shipping staging. The same **LOCATION OCCUPIED** message used by Store applies.
 
 ## Example
 

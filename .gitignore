@@ -18,3 +18,7 @@ Thumbs.db
 
 # TypeScript build metadata
 *.tsbuildinfo
+
+# Supabase local runtime state
+supabase/.branches/
+supabase/.temp/

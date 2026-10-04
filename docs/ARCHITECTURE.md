@@ -532,6 +532,10 @@ Each operation should:
 9. Commit atomically.
 10. Return the resulting state.
 
+For Store and Move, validation includes a concurrency-safe rack-capacity check. The protected operation must lock the pallet, then lock the affected `locations` rows in stable ID order and verify that no other non-shipped pallet occupies the destination when `location_type = rack`. It must keep those locks through the pallet update and history insert. Packing and shipping staging locations deliberately allow multiple pallets.
+
+The schema also enforces this invariant with triggers that use the same location-row lock. A global unique constraint on `pallets.current_location_id` is not valid because it would incorrectly limit shared packing and shipping-staging locations. A partial unique index cannot inspect `locations.location_type`, which is on another table.
+
 ---
 
 # Idempotency
@@ -817,6 +821,10 @@ Backend condition:
 UI:
 
 **LOCATION OCCUPIED**
+
+`B-003-AC already contains a pallet.`
+
+`Scan another location.`
 
 Do not show raw SQL, Supabase, stack-trace, or network error text to workers.
 

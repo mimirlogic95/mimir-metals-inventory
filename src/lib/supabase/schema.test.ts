@@ -1,0 +1,181 @@
+import migrationSql from '../../../supabase/migrations/20261004150000_create_v1_database_foundation.sql?raw';
+import seedSql from '../../../supabase/seed.sql?raw';
+
+const v1Tables = [
+  'profiles',
+  'parts',
+  'packing_specs',
+  'locations',
+  'pallets',
+  'inventory_transactions',
+  'adjustment_requests',
+];
+
+describe('V1 database migration source', () => {
+  it.each(v1Tables)('creates and protects the %s table', (tableName) => {
+    expect(migrationSql).toContain(`create table public.${tableName}`);
+    expect(migrationSql).toContain(
+      `alter table public.${tableName} enable row level security`,
+    );
+  });
+
+  it('protects pallet quantities and packing snapshots with constraints', () => {
+    expect(migrationSql).toContain('pallets_original_boxes_positive');
+    expect(migrationSql).toContain('pallets_current_boxes_nonnegative');
+    expect(migrationSql).toContain('pallets_current_pieces_nonnegative');
+    expect(migrationSql).toContain('pallets_original_piece_math');
+    expect(migrationSql).toContain('pallets_current_piece_math');
+    expect(migrationSql).not.toMatch(/full_partial|fill_status/);
+  });
+
+  it('preserves the lifecycle state that an on-hold pallet must return to', () => {
+    expect(migrationSql).toContain(
+      'lifecycle_status_before_hold public.pallet_lifecycle_status',
+    );
+    expect(migrationSql).toContain('pallets_hold_state_consistent');
+    expect(migrationSql).toContain('and lifecycle_status_before_hold is null');
+  });
+
+  it('enforces one active pallet per rack without globally uniquing locations', () => {
+    expect(migrationSql).toContain(
+      'create function public.enforce_rack_location_capacity()',
+    );
+    expect(migrationSql).toMatch(/order by id\s+for update;/);
+    expect(migrationSql).toContain("destination_type = 'rack'");
+    expect(migrationSql).toContain(
+      "occupying_pallet.lifecycle_status <> 'shipped'",
+    );
+    expect(migrationSql).toContain("message = 'LOCATION OCCUPIED'");
+    expect(migrationSql).toContain(
+      "detail = destination_code || ' already contains a pallet.'",
+    );
+    expect(migrationSql).toContain("hint = 'Scan another location.'");
+    expect(migrationSql).toContain(
+      'create trigger locations_enforce_type_capacity',
+    );
+    expect(migrationSql).not.toMatch(/unique\s*\(\s*current_location_id\s*\)/i);
+    expect(migrationSql).not.toMatch(
+      /create\s+unique\s+index[^;]*current_location_id/i,
+    );
+  });
+
+  it('defines the documented constrained lifecycle values', () => {
+    for (const value of ['worker', 'supervisor']) {
+      expect(migrationSql).toContain(`'${value}'`);
+    }
+
+    for (const value of [
+      'created',
+      'stored',
+      'shipping_staging',
+      'on_hold',
+      'shipped',
+      'pending',
+      'approved',
+      'rejected',
+      'rack',
+      'packing',
+    ]) {
+      expect(migrationSql).toContain(`'${value}'`);
+    }
+  });
+
+  it('only permits pending adjustments to become approved or rejected', () => {
+    expect(migrationSql).toContain(
+      'adjustment_requests_enforce_status_transition',
+    );
+    expect(migrationSql).toContain("old.status <> 'pending'");
+    expect(migrationSql).toContain(
+      "new.status not in ('approved', 'rejected')",
+    );
+  });
+
+  it('requires adjustment mismatches to be nonzero and directionally consistent', () => {
+    expect(migrationSql).toContain('adjustment_requests_difference_nonzero');
+    expect(migrationSql).toContain('adjustment_requests_difference_direction');
+  });
+
+  it('keeps browser roles read-only until protected operations exist', () => {
+    expect(migrationSql).toContain('revoke all on table');
+    expect(migrationSql).toContain('from anon, authenticated');
+    expect(migrationSql).toContain('grant select on table');
+    expect(migrationSql).not.toMatch(
+      /for\s+(insert|update|delete)\s+to authenticated/i,
+    );
+  });
+
+  it('limits adjustment visibility to the requester or an active supervisor', () => {
+    expect(migrationSql).toContain(
+      'requested_by_user_id = (select auth.uid())',
+    );
+    expect(migrationSql).toContain("profiles.role = 'supervisor'");
+    expect(migrationSql).toContain('and profiles.active');
+  });
+
+  it('uses restrictive foreign-key deletion behavior for historical data', () => {
+    expect(migrationSql).toContain('on delete restrict');
+    expect(migrationSql).not.toMatch(/on delete cascade/i);
+  });
+
+  it('supports idempotency and append-only transaction history', () => {
+    expect(migrationSql).toContain('idempotency_key text unique');
+    expect(migrationSql).toContain('Append-only audit history');
+    expect(migrationSql).toContain(
+      'inventory_transactions_quantity_dimensions_together',
+    );
+  });
+});
+
+describe('V1 fictional seed source', () => {
+  it('contains the documented fictional parts and repeatable inserts', () => {
+    for (const partNumber of [
+      'MM-A141',
+      'MM-A3815',
+      'MM-A1212',
+      'MM-A586',
+      'MM-SC343',
+      'MM-SC785',
+      'MM-SC18',
+    ]) {
+      expect(seedSql).toContain(partNumber);
+    }
+
+    expect(seedSql).toContain('on conflict (part_number) do update');
+    expect(seedSql).toContain('join public.parts using (part_number)');
+    expect(seedSql).toContain('on conflict (part_id) do update');
+    expect(seedSql).toContain('on conflict (location_code) do update');
+  });
+
+  it('uses positive, internally consistent fictional packing values', () => {
+    const packingRows = [
+      ...seedSql.matchAll(
+        /\('(MM-[A-Z0-9]+)', (\d+), (\d+), (\d+\.\d+), (\d+\.\d+)\)/g,
+      ),
+    ];
+
+    expect(packingRows).toHaveLength(7);
+
+    for (const row of packingRows) {
+      const piecesPerBox = Number(row[2]);
+      const boxesPerPallet = Number(row[3]);
+      const boxWeight = Number(row[4]);
+      const palletWeight = Number(row[5]);
+
+      expect(piecesPerBox).toBeGreaterThan(0);
+      expect(boxesPerPallet).toBeGreaterThan(0);
+      expect(boxWeight).toBeGreaterThan(0);
+      expect(palletWeight).toBe(boxWeight * boxesPerPallet);
+    }
+  });
+
+  it('defines unique fictional location codes', () => {
+    const locationCodes = [
+      ...seedSql.matchAll(
+        /'((?:B-\d{3}-[A-Z]{2}|PACKING-01|SHIPPING-STAGING-01))'/g,
+      ),
+    ].map((match) => match[1]);
+
+    expect(locationCodes).toHaveLength(16);
+    expect(new Set(locationCodes).size).toBe(locationCodes.length);
+  });
+});

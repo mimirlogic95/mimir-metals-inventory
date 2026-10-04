@@ -408,9 +408,22 @@ If location is invalid:
 
 Expect rejection.
 
-If location is occupied and V1 allows only one pallet per slot:
+If another active pallet already occupies the destination rack:
 
-Expect rejection.
+Expect:
+
+- Request rejected with `LOCATION OCCUPIED`
+- Existing pallet remains assigned to the rack
+- Incoming pallet location remains unchanged
+- No STORED transaction is inserted
+
+If the destination is `packing` or `shipping_staging` and already contains pallets:
+
+Expect storage to remain allowed, subject to the other workflow rules.
+
+Run two concurrent Store requests for different pallets targeting the same empty rack.
+
+Expect exactly one request to succeed. The other request must wait for the destination-location lock and then fail with `LOCATION OCCUPIED`.
 
 ---
 
@@ -470,6 +483,22 @@ Expect:
 
 - Current location becomes B-004-AB
 - MOVED transaction records both locations
+
+If B-004-AB contains another active pallet:
+
+Expect:
+
+- Request rejected with `LOCATION OCCUPIED`
+- Pallet remains at B-003-AC
+- No MOVED transaction is inserted
+
+Moving multiple pallets into the same `packing` or `shipping_staging` location remains allowed.
+
+Also verify that:
+
+- An on-hold pallet occupies rack capacity.
+- A shipped pallet left with a historical current-location reference does not occupy rack capacity.
+- A location containing multiple active pallets cannot be changed from a shared type to `rack`.
 
 ---
 
