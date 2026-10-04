@@ -640,6 +640,8 @@ This is the value encoded in the pallet QR code.
 
 The pallet code must never be reused.
 
+`create_pallet` obtains codes from the database sequence `pallet_code_seq` and formats them as `MM-P-` plus seven digits. Sequence allocation is concurrency-safe and the unique pallet constraint remains the final safeguard. A failed transaction may leave an unused number; gaps are accepted so a rolled-back code is never reused.
+
 ---
 
 ### part_id
@@ -1463,6 +1465,10 @@ The main relationships are:
 # Pallet Creation Transaction
 
 When a new pallet is created, the system should perform one atomic operation.
+
+The protected `create_pallet` RPC accepts only the selected part, positive box count, required heat and lot values, optional machine code, and an idempotency key. It derives the actor from `auth.uid()`, requires an active worker or supervisor profile, reloads the active part and packing specification, calculates pieces, copies packing snapshots, creates the pallet, and appends the initial transaction in one database transaction. The client cannot submit piece totals or snapshot values.
+
+Matching retries are serialized with a transaction-scoped advisory lock on the idempotency key. A retry by the same actor with the same request returns the original pallet. Reusing the key with changed creation fields, a different actor, or another transaction type is rejected.
 
 ## Example
 

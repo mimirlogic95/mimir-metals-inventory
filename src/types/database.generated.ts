@@ -452,7 +452,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      create_pallet: {
+        Args: {
+          p_boxes: number
+          p_heat_number: string
+          p_idempotency_key: string
+          p_lot_number: string
+          p_machine_code?: string
+          p_part_id: string
+        }
+        Returns: {
+          boxes_per_full_pallet_snapshot: number
+          current_boxes: number
+          current_pieces: number
+          description: string
+          estimated_box_weight_lb_snapshot: number
+          heat_number: string
+          id: string
+          lifecycle_status: Database["public"]["Enums"]["pallet_lifecycle_status"]
+          lot_number: string
+          machine_code: string
+          original_boxes: number
+          original_pieces: number
+          packed_at: string
+          packed_by_user_id: string
+          pallet_code: string
+          part_id: string
+          part_number: string
+          pieces_per_box_snapshot: number
+          product_family: string
+        }[]
+      }
     }
     Enums: {
       adjustment_status: "pending" | "approved" | "rejected"

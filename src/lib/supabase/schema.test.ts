@@ -1,4 +1,5 @@
 import migrationSql from '../../../supabase/migrations/20261004150000_create_v1_database_foundation.sql?raw';
+import createPalletMigrationSql from '../../../supabase/migrations/20261004200000_add_create_pallet_rpc.sql?raw';
 import seedSql from '../../../supabase/seed.sql?raw';
 
 const v1Tables = [
@@ -122,6 +123,59 @@ describe('V1 database migration source', () => {
     expect(migrationSql).toContain('Append-only audit history');
     expect(migrationSql).toContain(
       'inventory_transactions_quantity_dimensions_together',
+    );
+  });
+});
+
+describe('Create Pallet protected operation source', () => {
+  it('keeps identity, packing values, quantities, and pallet codes server-authoritative', () => {
+    expect(createPalletMigrationSql).toContain('actor_id uuid := auth.uid()');
+    expect(createPalletMigrationSql).toContain('part.active');
+    expect(createPalletMigrationSql).toContain(
+      'p_boxes::bigint * selected_part.pieces_per_box::bigint',
+    );
+    expect(createPalletMigrationSql).toContain(
+      'selected_part.boxes_per_full_pallet',
+    );
+    expect(createPalletMigrationSql).toContain(
+      "pg_catalog.nextval('public.pallet_code_seq'::regclass)",
+    );
+    expect(createPalletMigrationSql).not.toMatch(
+      /p_(pieces|pieces_per_box|boxes_per_full_pallet)/,
+    );
+  });
+
+  it('creates the pallet and complete audit quantities inside one function', () => {
+    expect(createPalletMigrationSql).toContain('insert into public.pallets');
+    expect(createPalletMigrationSql).toContain(
+      'insert into public.inventory_transactions',
+    );
+    expect(createPalletMigrationSql).toContain("'pallet_created'");
+    expect(createPalletMigrationSql).toMatch(
+      /0,\s+p_boxes,\s+p_boxes,\s+0,\s+authoritative_pieces,\s+authoritative_pieces,/,
+    );
+  });
+
+  it('serializes idempotent retries and rejects changed requests using the same key', () => {
+    expect(createPalletMigrationSql).toContain(
+      'pg_catalog.pg_advisory_xact_lock',
+    );
+    expect(createPalletMigrationSql).toContain(
+      'transaction.idempotency_key = normalized_idempotency_key',
+    );
+    expect(createPalletMigrationSql).toContain('IDEMPOTENCY KEY CONFLICT');
+  });
+
+  it('uses a hardened security-definer boundary with least-privilege execution', () => {
+    expect(createPalletMigrationSql).toContain('security definer');
+    expect(createPalletMigrationSql).toContain("set search_path = ''");
+    expect(createPalletMigrationSql).toContain(
+      'revoke all on function public.create_pallet',
+    );
+    expect(createPalletMigrationSql).toContain('from public, anon');
+    expect(createPalletMigrationSql).toContain('to authenticated');
+    expect(createPalletMigrationSql).not.toMatch(
+      /grant execute[^;]+to\s+(public|anon)/is,
     );
   });
 });

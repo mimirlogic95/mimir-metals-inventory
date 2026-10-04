@@ -491,6 +491,19 @@ For each mission:
 
 Do not build future features while assigned a focused task.
 
+### Local development authentication
+
+Create Pallet uses the real authenticated Supabase RPC. Until the full authentication UI is built, `npm run dev` can sign in a fictional development worker from ignored local environment values:
+
+```text
+VITE_DEV_AUTH_EMAIL=
+VITE_DEV_AUTH_PASSWORD=
+```
+
+The user must exist in the dedicated development Supabase project and have an active `worker` or `supervisor` profile. This helper runs only in Vite development mode; it does not bypass Supabase Auth, profile checks, RLS, or RPC authorization. Never commit populated values.
+
+If the local development password contains `#`, wrap its value in quotes in `.env.local`; otherwise Vite treats the rest of that line as a comment. Restart `npm run dev` after changing `.env.local`.
+
 ---
 
 ## Expected Quality Checks

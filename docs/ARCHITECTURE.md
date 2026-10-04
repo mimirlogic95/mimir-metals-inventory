@@ -532,6 +532,10 @@ Each operation should:
 9. Commit atomically.
 10. Return the resulting state.
 
+Mission 4 implements `create_pallet` as a `SECURITY DEFINER` function with an empty fixed search path, fully qualified object references, execution revoked from `public` and `anon`, and execution granted only to `authenticated`. It derives its actor from `auth.uid()` and verifies an active worker or supervisor profile. Browser roles retain no direct mutation privileges on pallets or transaction history.
+
+Pallet codes come from a protected PostgreSQL sequence and are formatted server-side. The same function serializes matching idempotency keys before checking history, so simultaneous retries return one pallet. The browser never supplies authoritative pieces, packing snapshots, pallet codes, actors, or timestamps.
+
 For Store and Move, validation includes a concurrency-safe rack-capacity check. The protected operation must lock the pallet, then lock the affected `locations` rows in stable ID order and verify that no other non-shipped pallet occupies the destination when `location_type = rack`. It must keep those locks through the pallet update and history insert. Packing and shipping staging locations deliberately allow multiple pallets.
 
 The schema also enforces this invariant with triggers that use the same location-row lock. A global unique constraint on `pallets.current_location_id` is not valid because it would incorrectly limit shared packing and shipping-staging locations. A partial unique index cannot inspect `locations.location_type`, which is on another table.
@@ -669,6 +673,8 @@ Example:
 ```
 
 V1 should not require a proprietary printer SDK.
+
+The Create Pallet success state provides this browser print view directly. The label is sized for a 4×6-inch print page and generates a QR containing only the returned permanent `pallet_code`.
 
 Industrial printer integration may be added later if required.
 
@@ -919,6 +925,8 @@ Suggested environments:
 Developer machine.
 
 Uses local or dedicated development Supabase data. The repository has been validated against a dedicated Supabase Cloud development project; each checkout links locally through ignored CLI metadata.
+
+Until the authentication-screen mission, Vite development mode may use `VITE_DEV_AUTH_EMAIL` and `VITE_DEV_AUTH_PASSWORD` to sign in a fictional development account when no session exists. The helper still uses Supabase Auth and the normal active-profile/RPC authorization checks. It is unavailable in production builds, and populated credentials remain in ignored local environment configuration.
 
 ---
 

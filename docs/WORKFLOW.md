@@ -111,21 +111,21 @@ Create a new finished-goods pallet record after parts are packed.
 2. Worker selects or searches for the part.
 3. The app displays the stored packing specification.
 4. Worker enters the number of boxes on the pallet.
-5. The app automatically calculates the total piece quantity.
-6. Worker enters or confirms:
+5. The app displays a piece-quantity and FULL/PARTIAL preview.
+6. Worker enters:
    - Heat number
    - Lot number
-   - Machine
-   - Operator
-   - Packing date
-7. Worker selects destination:
-   - STORE IN INVENTORY
-   - HOT JOB / SHIPPING
-8. The app generates a unique pallet ID.
-9. The app creates the pallet record.
-10. The app records a **PALLET CREATED** transaction.
-11. Worker prints the pallet label.
-12. Worker continues to storage or shipping staging.
+   - Machine code, when useful
+7. Worker reviews the complete pallet without saving it yet.
+8. Worker taps **CREATE PALLET**.
+9. The protected database operation derives the worker from the authenticated session, reloads the active part and packing specification, calculates pieces, snapshots packing values, and generates a permanent pallet ID.
+10. The database creates the pallet and **PALLET CREATED** transaction atomically.
+11. A success screen shows the authoritative saved quantities.
+12. Worker opens and prints the pallet label.
+
+Operator identity and packing time come from the authenticated profile and database clock. Destination selection, storage, and hot-job staging are separate later workflows and are not performed by Create Pallet.
+
+If the connection fails, the screen shows **NOT SAVED YET** and retries with the same idempotency key. A retry that already succeeded returns the same pallet rather than creating another one.
 
 ## Example
 
@@ -192,6 +192,8 @@ The label should display:
 PARTIAL PALLET
 
 The QR code identifies the pallet ID.
+
+The printable V1 browser label uses a 4×6-inch print layout. Its QR payload contains only the stable pallet code, never quantities, location, credentials, or mutable JSON.
 
 ---
 

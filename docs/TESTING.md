@@ -383,6 +383,16 @@ Expect:
 - actor stored
 - timestamp stored
 
+Also verify:
+
+- Only authenticated active workers/supervisors can execute the RPC.
+- The client cannot submit a piece count or packing snapshot.
+- A matching idempotent retry returns the first pallet and transaction.
+- Reusing a key for changed input fails.
+- Zero/negative boxes and inactive parts fail.
+- A forced transaction-insert failure rolls back the pallet insert.
+- Generated codes are unique and match `MM-P-` plus seven digits.
+
 ---
 
 # Integration Test — Store Pallet
@@ -965,6 +975,14 @@ npx --yes supabase@2.119.0 db query --linked --file supabase/tests/database_foun
 The script uses fictional temporary records and rolls back all test changes. It verifies schema objects, packing and inventory arithmetic, hold consistency, historical foreign-key restrictions, idempotency, rack capacity, shared packing/staging capacity, RLS visibility, and browser-role write restrictions.
 
 Never run database validation against an unknown project. Confirm the linked project is the intended development environment first.
+
+The rollback-only Create Pallet RPC validation runs separately:
+
+```text
+npx --yes supabase@2.119.0 db query --linked --file supabase/tests/create_pallet.sql
+```
+
+It uses fictional temporary identities and inventory records and rolls back every test change.
 
 ---
 

@@ -35,6 +35,8 @@ This design keeps floor reads fast without trusting cached browser state for inv
 - An on-hold pallet retains its prior lifecycle state so release does not require inference from location or history.
 - Rack occupancy is derived from pallet locations rather than stored as a second mutable truth; rack capacity is defined in ADR-0002.
 - Tests must cover both the current pallet record and its corresponding audit event.
+- `create_pallet` is the first protected write: it generates sequence-backed worker-facing codes, snapshots packing data, calculates quantities, and writes creation history atomically.
+- Creation retries serialize on the idempotency key and return the original matching pallet; changed requests cannot reuse that key.
 
 ## Revisit When
 

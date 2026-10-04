@@ -49,3 +49,23 @@
     outline-offset: 3px;
   }
 }
+
+@media print {
+  @page {
+    size: 4in 6in;
+    margin: 0.15in;
+  }
+
+  html,
+  body {
+    min-width: 0;
+    background: white;
+  }
+
+  .pallet-label {
+    width: 3.7in;
+    height: 5.7in;
+    max-width: none;
+    break-inside: avoid;
+  }
+}
