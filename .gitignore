@@ -1,0 +1,20 @@
+# Dependencies and build output
+node_modules/
+dist/
+coverage/
+
+# Local environment configuration
+.env
+.env.*
+!.env.example
+
+# Editor and operating-system files
+.DS_Store
+Thumbs.db
+*.local
+*.log
+.vscode/*
+!.vscode/extensions.json
+
+# TypeScript build metadata
+*.tsbuildinfo
