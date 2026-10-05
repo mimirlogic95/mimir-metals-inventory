@@ -735,26 +735,26 @@ Inventory writes require confirmed server communication.
 
 # FIFO Architecture
 
-FIFO results should come from a backend query or database view.
+Mission 6 uses a typed, authenticated Supabase read query against existing `pallets` and `locations`; no new database object or privileged read RPC is required. PostgreSQL filters to stored, positive-quantity rack pallets for one part and orders by `packed_at`, `created_at`, then pallet ID. The data-access module pages the complete result so API row limits cannot quietly undercount inventory. RLS and SELECT-only browser grants remain the authorization boundary.
 
 Eligibility:
 
 - Matching part
-- Current boxes greater than zero
-- Not shipped
-- Not on hold
-- Available for normal pull
+- `stored` lifecycle with an actual rack location
+- Current boxes and current pieces greater than zero
+- Not shipped, on hold, created, or in shipping staging
 
 Ordering:
 
 1. `packed_at ASC`
-2. deterministic tie-breaker such as `created_at ASC`
+2. `created_at ASC`
+3. immutable pallet `id ASC`
 
 The frontend displays the first eligible result as:
 
 **PULL FIRST**
 
-The frontend should not independently invent FIFO ordering from incomplete cached data.
+The frontend sums current quantities from the complete eligible result and marks only its first pallet. It derives FULL/PARTIAL from the pallet snapshot. A separate held count provides an unavailable notice without affecting totals or FIFO. Refresh and focus refetch current data; loading and failed refreshes hide cached inventory rather than presenting it as current. This read cannot mutate inventory.
 
 ---
 

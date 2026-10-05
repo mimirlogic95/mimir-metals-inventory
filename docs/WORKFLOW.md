@@ -257,14 +257,12 @@ Quickly locate finished goods and identify which inventory should be used first.
 
 ## Search Options
 
-Worker may search by:
+The initial Find screen searches active parts by:
 
 - Part number
 - Description
-- Pallet ID
-- Location
-- Lot number
-- Heat number
+
+Pallet ID, location, lot, and heat search are later extensions, not part of this screen yet.
 
 ## Search Result
 
@@ -281,13 +279,17 @@ The app should show:
 
 ## FIFO Behavior
 
-Eligible inventory is sorted oldest first.
+The available list is rack inventory only: stored pallets in a rack with positive current boxes and pieces. The summary sums those pallets' current boxes and current pieces, not the current master packing specification. Created/packing and shipping-staging pallets are distinct workflows and are not counted as available warehouse inventory.
+
+Eligible pallets are sorted oldest first by database `packed_at`, then `created_at`, then pallet ID for stable ties. This is a recommendation, not an allocation.
 
 The oldest eligible pallet is clearly marked:
 
 **PULL FIRST**
 
-Pallets on hold are excluded from FIFO recommendations.
+Pallets on hold, shipped pallets, and empty pallets are excluded from the available list and FIFO recommendation. If positive-quantity held inventory exists for the part, Find shows a separate notice without adding it to available totals.
+
+Workers can refresh the live read. While reloading or after a failed refresh, the screen does not present cached quantities as current. A pallet opens a read-only detail; Pull Boxes is not implemented in this workflow yet.
 
 ---
 

@@ -977,6 +977,16 @@ Security tests must include:
 
 # Database Foundation Validation
 
+The rollback-only Mission 6 Find/FIFO fixture is `supabase/tests/find_inventory.sql`. After verifying the CLI link points to **Mimir Metals Inventory Development**, run:
+
+```text
+npx --yes supabase@2.119.0 db query --linked --file supabase/tests/find_inventory.sql
+```
+
+It creates fictional stored FULL/PARTIAL, held, shipped, empty, created/packing, and shipping-staging pallets in a transaction that rolls back. It checks oldest-first ordering, exact-timestamp tie-breaking by pallet ID, available totals from current quantities, hold exclusion, snapshot-derived fill status, and authenticated read-only privileges. Frontend tests cover part-number/description search, no-match and no-inventory states, summary, one PULL FIRST badge, location, held notice, detail, refresh failure, and retry.
+
+For the separate live browser check, `supabase/tests/find_inventory_live_fixture.sql` can add one idempotent **fictional** MM-A3815 held pallet in the verified development project. It writes created, stored, and hold history atomically, leaves that audit history in place, and must never be run against production. It exists only to confirm the browser's held notice and that held stock does not inflate available totals or receive PULL FIRST.
+
 The linked Supabase development database can run the rollback-only foundation test directly against PostgreSQL:
 
 ```text

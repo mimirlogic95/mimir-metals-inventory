@@ -1630,16 +1630,9 @@ All steps must occur atomically.
 
 # FIFO Rules
 
-FIFO should use the oldest eligible inventory.
+The initial Find Inventory warehouse read uses the oldest eligible stored rack inventory. A pallet competes only when it matches the selected part, has `lifecycle_status = stored`, has positive `current_boxes` and `current_pieces`, and its actual `current_location_id` points to a rack. This excludes held, shipped, empty, created/packing, and shipping-staging pallets. Staging inventory remains a separate shipping workflow rather than silently joining warehouse FIFO.
 
-Suggested V1 ordering:
-
-1. Pallet is not shipped.
-2. Pallet is not on hold.
-3. Pallet has current_boxes greater than zero.
-4. Pallet matches requested part.
-5. Sort by `packed_at` ascending.
-6. Use `created_at` as a deterministic tie-breaker if needed.
+Sort by authoritative `packed_at ASC`, then `created_at ASC`, then immutable pallet `id ASC` for exact timestamp ties. The matching server query applies this ordering; the browser marks only its first result. Available totals sum the returned pallets' `current_boxes` and `current_pieces`. FULL/PARTIAL is derived from each pallet's `boxes_per_full_pallet_snapshot`, not a mutable status or current master packing spec.
 
 The UI marks the first eligible pallet:
 

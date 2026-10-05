@@ -15,6 +15,11 @@ const StorePalletPage = lazy(async () => {
   return { default: module.StorePalletPage };
 });
 
+const FindInventoryPage = lazy(async () => {
+  const module = await import('@/features/find-inventory/FindInventoryPage');
+  return { default: module.FindInventoryPage };
+});
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -35,9 +40,20 @@ export function AppRoutes() {
           </Suspense>
         }
       />
+      <Route
+        path="/find"
+        element={
+          <Suspense fallback={<RouteLoadingState title="Find Inventory" />}>
+            <FindInventoryPage />
+          </Suspense>
+        }
+      />
       {taskRoutes
         .filter(
-          (task) => task.path !== '/create-pallet' && task.path !== '/store',
+          (task) =>
+            task.path !== '/create-pallet' &&
+            task.path !== '/store' &&
+            task.path !== '/find',
         )
         .map((task) => (
           <Route
