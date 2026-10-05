@@ -299,6 +299,15 @@ values
     'M3S'
   );
 
+-- Use a rollback-only rack instead of assuming a shared seeded rack is empty.
+insert into public.locations (id, location_code, location_type, active)
+values (
+  '99000000-0000-4000-8000-000000000001',
+  'M3-TEST-RACK-001',
+  'rack',
+  true
+);
+
 insert into public.pallets (
   id,
   pallet_code,
@@ -328,7 +337,7 @@ values (
   7000,
   10,
   7000,
-  '30000000-0000-4000-8000-000000000001',
+  '99000000-0000-4000-8000-000000000001',
   'stored'
 );
 
@@ -344,7 +353,7 @@ select pg_temp.assert_raises(
       '10000000-0000-4000-8000-000000000002', 'MM-M3-HEAT-06',
       'MM-M3-LOT-06', '90000000-0000-4000-8000-000000000001',
       700, 48, 10, 7000, 10, 7000,
-      '30000000-0000-4000-8000-000000000001', 'stored'
+      '99000000-0000-4000-8000-000000000001', 'stored'
     )
   $statement$,
   'P0001',
@@ -371,7 +380,7 @@ select pg_temp.assert_raises(
       '10000000-0000-4000-8000-000000000002', 'MM-M3-HEAT-06',
       'MM-M3-LOT-06', '90000000-0000-4000-8000-000000000001',
       700, 48, 10, 7000, 10, 7000,
-      '30000000-0000-4000-8000-000000000001', 'stored'
+      '99000000-0000-4000-8000-000000000001', 'stored'
     )
   $statement$,
   'P0001',
@@ -517,7 +526,7 @@ values (
   7000,
   10,
   7000,
-  '30000000-0000-4000-8000-000000000001',
+  '99000000-0000-4000-8000-000000000001',
   'stored'
 );
 
@@ -525,7 +534,7 @@ select pg_temp.assert_true(
   (
     select count(*) = 1
     from public.pallets
-    where current_location_id = '30000000-0000-4000-8000-000000000001'
+    where current_location_id = '99000000-0000-4000-8000-000000000001'
       and lifecycle_status <> 'shipped'
   ),
   'a shipped pallet must not consume rack capacity'

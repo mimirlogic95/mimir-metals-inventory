@@ -483,6 +483,29 @@ export type Database = {
           product_family: string
         }[]
       }
+      store_pallet: {
+        Args: {
+          p_destination_location_id: string
+          p_idempotency_key: string
+          p_pallet_code: string
+        }
+        Returns: {
+          boxes_per_full_pallet_snapshot: number
+          current_boxes: number
+          current_pieces: number
+          description: string
+          destination_location_code: string
+          destination_location_id: string
+          lifecycle_status: Database["public"]["Enums"]["pallet_lifecycle_status"]
+          pallet_code: string
+          pallet_id: string
+          part_number: string
+          position: string
+          rack: string
+          stored_at: string
+          zone: string
+        }[]
+      }
     }
     Enums: {
       adjustment_status: "pending" | "approved" | "rejected"

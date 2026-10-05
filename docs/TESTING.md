@@ -429,11 +429,22 @@ Expect:
 
 If the destination is `packing` or `shipping_staging` and already contains pallets:
 
-Expect storage to remain allowed, subject to the other workflow rules.
+Expect Store to reject the destination because this workflow accepts active racks only. The underlying capacity rule still permits multiple pallets at those shared locations for other workflows.
 
 Run two concurrent Store requests for different pallets targeting the same empty rack.
 
 Expect exactly one request to succeed. The other request must wait for the destination-location lock and then fail with `LOCATION OCCUPIED`.
+
+Mission 5 also verifies `created` → `stored` from no location or packing, rejects stored/shipped/on-hold pallets and inactive/non-rack destinations, and checks active-profile authorization, an exact idempotent retry, changed-request key conflicts, and state/history atomicity. The local Store UI tests cover lookups, occupied previews, review-before-save, success, and retry-key reuse. Real concurrency and RPC privilege checks must run against the linked development PostgreSQL database before Mission 5 is considered fully validated.
+
+After verifying that the CLI is linked to the intended **development** project, run:
+
+```text
+npx --yes supabase@2.119.0 db query --linked --file supabase/tests/store_pallet.sql
+node supabase/tests/store_pallet_concurrency.mjs <verified-development-project-ref>
+```
+
+The SQL test uses fictional rows and rolls back. The concurrency script requires the CLI-linked reference, the local Supabase URL, and the authenticated CLI project list to identify **Mimir Metals Inventory Development** before it writes anything; add `--verify-only` after the reference to check that guard without creating records. The full test signs in as the ignored local development worker, creates two fictional pallets, submits Store calls simultaneously to one empty rack, verifies one success/one `LOCATION OCCUPIED`, checks a retry and history, and leaves the fictional records in place to preserve immutable inventory history. It prints one unstored fictional pallet code and one open rack code for the manual browser walkthrough. Do not run it against production.
 
 ---
 

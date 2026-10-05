@@ -10,6 +10,11 @@ const CreatePalletPage = lazy(async () => {
   return { default: module.CreatePalletPage };
 });
 
+const StorePalletPage = lazy(async () => {
+  const module = await import('@/features/store-pallet/StorePalletPage');
+  return { default: module.StorePalletPage };
+});
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -22,8 +27,18 @@ export function AppRoutes() {
           </Suspense>
         }
       />
+      <Route
+        path="/store"
+        element={
+          <Suspense fallback={<RouteLoadingState title="Store Pallet" />}>
+            <StorePalletPage />
+          </Suspense>
+        }
+      />
       {taskRoutes
-        .filter((task) => task.path !== '/create-pallet')
+        .filter(
+          (task) => task.path !== '/create-pallet' && task.path !== '/store',
+        )
         .map((task) => (
           <Route
             key={task.path}
@@ -36,15 +51,13 @@ export function AppRoutes() {
   );
 }
 
-function RouteLoadingState() {
+function RouteLoadingState({ title = 'Create Pallet' }: { title?: string }) {
   return (
     <main
       role="status"
       className="grid min-h-screen place-items-center px-4 text-center"
     >
-      <p className="text-lg font-black text-[#172033]">
-        Loading Create Pallet…
-      </p>
+      <p className="text-lg font-black text-[#172033]">Loading {title}…</p>
     </main>
   );
 }

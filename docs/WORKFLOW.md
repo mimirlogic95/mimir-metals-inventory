@@ -206,28 +206,20 @@ Assign a pallet to a physical warehouse location.
 ## Steps
 
 1. Worker taps **STORE**.
-2. Worker scans the pallet QR code.
+2. Worker enters the pallet code printed on the QR label. Camera scanning is deferred.
 3. The app displays pallet details for confirmation.
-4. The app recommends open storage locations.
-5. Recommendations prioritize:
-   - Open locations
-   - Same product family nearby
-   - Nearby open space
-6. Worker either:
-   - Accepts a suggested location, or
-   - Scans a different valid location
-7. Worker scans the rack-location QR code.
-8. The app confirms:
-   - Pallet ID
-   - Destination location
-9. Worker taps **CONFIRM STORAGE**.
-10. The app records a **STORED** transaction.
-11. The app updates the pallet's current location.
-12. A success screen confirms the action.
+4. Worker enters an active rack-location code. Camera scanning and location recommendations are deferred.
+5. The app displays whether the rack appears open or occupied. This read is advisory; the server checks again when saving.
+6. The app reviews the pallet, part, quantities, and destination.
+7. Worker taps **STORE PALLET**.
+8. The protected `store_pallet` operation updates the pallet to `stored` and records a **STORED** transaction atomically.
+9. A success screen shows the server-returned pallet and destination.
+
+Store accepts a `created` pallet with no current location or a packing-area location. Already stored pallets require a future Move workflow; shipped and on-hold pallets are not eligible. Store destinations must be active racks. Packing and shipping staging remain shared-capacity location types for other workflows, but they are not Store destinations.
 
 ## Rack Capacity Rule
 
-Before committing storage, the future protected Store operation must lock the pallet, lock the destination location, and recheck its current occupancy. A normal rack accepts only one active pallet. Packing and shipping staging locations may contain multiple pallets.
+Before committing storage, the protected Store operation locks the pallet, locks the source and destination location rows in stable ID order, and rechecks rack occupancy. A normal rack accepts only one non-shipped pallet, including an on-hold pallet. Packing and shipping staging locations may contain multiple pallets, but Store does not target them.
 
 If another active pallet already occupies the rack, storage is rejected and the worker sees:
 
@@ -243,11 +235,11 @@ Pallet:
 
 `MM-P-0004821`
 
-Suggested location:
+Entered location:
 
 `B-003-AC`
 
-Worker scans:
+Worker confirms:
 
 `B-003-AC`
 

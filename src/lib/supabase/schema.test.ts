@@ -1,5 +1,6 @@
 import migrationSql from '../../../supabase/migrations/20261004150000_create_v1_database_foundation.sql?raw';
 import createPalletMigrationSql from '../../../supabase/migrations/20261004200000_add_create_pallet_rpc.sql?raw';
+import storePalletMigrationSql from '../../../supabase/migrations/20261004210000_add_store_pallet_rpc.sql?raw';
 import seedSql from '../../../supabase/seed.sql?raw';
 
 const v1Tables = [
@@ -175,6 +176,55 @@ describe('Create Pallet protected operation source', () => {
     expect(createPalletMigrationSql).toContain('from public, anon');
     expect(createPalletMigrationSql).toContain('to authenticated');
     expect(createPalletMigrationSql).not.toMatch(
+      /grant execute[^;]+to\s+(public|anon)/is,
+    );
+  });
+});
+
+describe('Store Pallet protected operation source', () => {
+  it('keeps actor, lifecycle, rack validation, and occupancy server-authoritative', () => {
+    expect(storePalletMigrationSql).toContain('actor_id uuid := auth.uid()');
+    expect(storePalletMigrationSql).toContain(
+      "selected_pallet.lifecycle_status <> 'created'",
+    );
+    expect(storePalletMigrationSql).toContain(
+      "destination.location_type <> 'rack'",
+    );
+    expect(storePalletMigrationSql).toContain('order by location.id');
+    expect(storePalletMigrationSql).toContain('for update;');
+    expect(storePalletMigrationSql).toContain(
+      "occupying_pallet.lifecycle_status <> 'shipped'",
+    );
+    expect(storePalletMigrationSql).toContain("message = 'LOCATION OCCUPIED'");
+  });
+
+  it('updates current state and inserts a zero-quantity-change event atomically', () => {
+    expect(storePalletMigrationSql).toContain(
+      'update public.pallets as pallet',
+    );
+    expect(storePalletMigrationSql).toContain("lifecycle_status = 'stored'");
+    expect(storePalletMigrationSql).toContain(
+      'insert into public.inventory_transactions',
+    );
+    expect(storePalletMigrationSql).toContain("'stored',");
+    expect(storePalletMigrationSql).toContain(
+      'selected_pallet.current_location_id',
+    );
+    expect(storePalletMigrationSql).toContain('normalized_idempotency_key');
+  });
+
+  it('serializes retries and limits execution to authenticated callers', () => {
+    expect(storePalletMigrationSql).toContain(
+      'pg_catalog.pg_advisory_xact_lock',
+    );
+    expect(storePalletMigrationSql).toContain('IDEMPOTENCY KEY CONFLICT');
+    expect(storePalletMigrationSql).toContain('security definer');
+    expect(storePalletMigrationSql).toContain("set search_path = ''");
+    expect(storePalletMigrationSql).toContain(
+      'revoke all on function public.store_pallet',
+    );
+    expect(storePalletMigrationSql).toContain('to authenticated;');
+    expect(storePalletMigrationSql).not.toMatch(
       /grant execute[^;]+to\s+(public|anon)/is,
     );
   });
