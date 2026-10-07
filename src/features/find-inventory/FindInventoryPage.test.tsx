@@ -144,6 +144,9 @@ describe('FindInventoryPage', () => {
     ).toBeInTheDocument();
     expect(within(detail).getByText('PULL FIRST')).toBeInTheDocument();
     expect(within(detail).getByText('STORED')).toBeInTheDocument();
+    expect(
+      within(detail).getByRole('link', { name: 'PULL BOXES' }),
+    ).toHaveAttribute('href', '/pull?code=MM-P-0000007');
   });
 
   it('shows no available inventory without including held pallets', async () => {

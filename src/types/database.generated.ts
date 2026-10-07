@@ -483,6 +483,32 @@ export type Database = {
           product_family: string
         }[]
       }
+      pull_boxes: {
+        Args: {
+          p_bol_reference?: string
+          p_boxes_to_pull: number
+          p_expected_current_boxes: number
+          p_expected_current_pieces: number
+          p_idempotency_key: string
+          p_pallet_code: string
+          p_po_reference?: string
+        }
+        Returns: {
+          boxes_removed: number
+          current_boxes: number
+          current_pieces: number
+          description: string
+          location_code: string
+          pallet_code: string
+          pallet_id: string
+          part_number: string
+          pieces_removed: number
+          previous_boxes: number
+          previous_pieces: number
+          pulled_at: string
+          transaction_id: string
+        }[]
+      }
       store_pallet: {
         Args: {
           p_destination_location_id: string

@@ -166,7 +166,7 @@ Expect:
 Test:
 
 - Pull 1 from 31 = allowed
-- Pull 31 from 31 = allowed
+- Pull 31 from 31 = rejected in Mission 7; final depletion belongs to Shipping
 - Pull 32 from 31 = rejected
 - Pull 0 = rejected
 - Pull negative quantity = rejected
@@ -449,6 +449,26 @@ The SQL test uses fictional rows and rolls back. The concurrency script requires
 ---
 
 # Integration Test — Pull Boxes
+
+After verifying the CLI link is **Mimir Metals Inventory Development**, run the rollback-only fictional Pull suite:
+
+```text
+npx --yes supabase@2.119.0 db query --linked --file supabase/tests/pull_boxes.sql
+```
+
+It verifies active worker and supervisor access; unauthenticated/inactive rejection; held, shipped, empty, created, and staging rejection; invalid, excessive, full-balance, and stale pulls; snapshot-derived piece math; unchanged rack; optional PO/BOL; one transaction; exact retry and changed-request/actor conflicts; direct browser-write denial; fixed empty `SECURITY DEFINER` search path; and rollback when the audit insert fails. All fixture writes roll back.
+
+For a real parallel race, first run the no-write target guard, then run the development-only script with the **separately verified** linked reference:
+
+```text
+node --check supabase/tests/pull_boxes_concurrency.mjs
+node supabase/tests/pull_boxes_concurrency.mjs <verified-development-project-ref> --verify-only
+node supabase/tests/pull_boxes_concurrency.mjs <verified-development-project-ref>
+```
+
+The script requires the linked ref, local development URL, and authenticated CLI project list to agree on **Mimir Metals Inventory Development**. It creates and stores a fictional pallet, tests simultaneous stale Pull requests, an exact retry, fractional input rejection at the live RPC boundary, final quantity, and one Pull event. Those fictional records remain in development to preserve immutable history. Never run it against production.
+
+The browser walkthrough should start from Find, open an eligible pallet's **PULL BOXES** action, review a small partial pull, confirm, verify server-returned success and one PostgreSQL Pull event, then return to Find and verify refreshed totals and FIFO. Also check Home → Pull manual lookup, a stale or oversized error where practical, and 320px/390px/768px layouts. Do not report this browser check as passed without actually performing it.
 
 Given:
 

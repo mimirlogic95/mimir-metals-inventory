@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import { AppHeader } from '@/app/layout/AppHeader';
 import {
@@ -306,6 +307,12 @@ function PalletDetail({
       <p className="mt-4 rounded-lg bg-slate-100 p-3 text-sm font-bold text-slate-600">
         Read-only view. Inventory may change; refresh before taking action.
       </p>
+      <Link
+        to={`/pull?code=${encodeURIComponent(pallet.pallet_code)}`}
+        className="mt-4 flex min-h-14 items-center justify-center rounded-xl bg-[#111d2d] px-5 py-3 text-base font-black text-white focus-visible:outline-4 focus-visible:outline-amber-500"
+      >
+        PULL BOXES
+      </Link>
     </section>
   );
 }

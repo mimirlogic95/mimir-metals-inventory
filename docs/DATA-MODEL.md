@@ -1507,6 +1507,12 @@ Both records must succeed together.
 
 # Box Pull Transaction
 
+Mission 7 `pull_boxes` accepts a pallet code, whole-box removal, expected reviewed box and piece balances, a required idempotency key, and optional PO/BOL references. It never accepts a client piece change or actor. The protected function derives an active worker/supervisor from `auth.uid()`, serializes retry keys, then locks the pallet row. An exact retry returns its original transaction quantities before checking the now-changed pallet state. Reuse with changed pallet, quantity, reviewed state, references, or actor is rejected.
+
+Only positive-quantity `stored` pallets physically in a rack are eligible. Held, shipped, created, and shipping-staging pallets are rejected. The function compares actual boxes **and** pieces with the worker's reviewed balances after locking, so a stale request fails even when enough boxes happen to remain. It computes the piece change from `pieces_per_box_snapshot` with overflow checks, updates current boxes/pieces, and appends the `box_pull` transaction in one database transaction. A failed history insert rolls back the pallet update.
+
+Mission 7 intentionally requires `boxes_to_pull < current_boxes`. The schema does not yet define a terminal/depleted lifecycle for a zero-balance stored pallet; final depletion belongs to a later Shipping workflow. A full-balance attempt receives **WHOLE PALLET — USE SHIPPING** rather than inventing a new state.
+
 Example:
 
 Current pallet:
@@ -1542,6 +1548,8 @@ Then update the pallet current state.
 The client should submit the requested box count.
 
 The server should calculate the piece change.
+
+The Pull event stores the server-derived actor and timestamp, before/change/after boxes and pieces, the idempotency key, and optional normalized PO/BOL values. Both `previous_location_id` and `new_location_id` refer to the same rack to explicitly show that this quantity-only operation did not move the pallet. The pallet's `current_location_id` and lifecycle remain unchanged. Normal Pull Boxes does not add a reason field.
 
 ---
 

@@ -536,6 +536,8 @@ Mission 4 implements `create_pallet` as a `SECURITY DEFINER` function with an em
 
 Mission 5 adds `store_pallet` under the same security boundary. It accepts a created pallet from no location or packing, an active rack destination, and an idempotency key. It derives actor and current pallet state on the server, serializes retries by key, locks the pallet and affected locations, checks capacity, then updates current state and appends a zero-quantity-change `stored` transaction in one database transaction. A matching retry returns its recorded result; a changed request with the same key fails. Store does not act as Move and does not accept held or shipped pallets. The browser's rack-availability read is only a preview, never an authorization to occupy a rack.
 
+Mission 7 adds `pull_boxes` under the same browser-read-only boundary. It accepts a pallet code, positive whole-box removal, both expected reviewed balances, a retry key, and optional PO/BOL references. It derives the actor, serializes matching retry keys, locks the pallet, rejects stale or ineligible state, and uses the pallet packing snapshot for authoritative piece arithmetic. Pallet quantity and one append-only `box_pull` event commit or roll back together. Exact retries return the original event; changed requests and actors cannot claim its key. A pull cannot consume the final boxes until Shipping defines the terminal transition. No RLS policy or direct browser write grant is broadened.
+
 Pallet codes come from a protected PostgreSQL sequence and are formatted server-side. The same function serializes matching idempotency keys before checking history, so simultaneous retries return one pallet. The browser never supplies authoritative pieces, packing snapshots, pallet codes, actors, or timestamps.
 
 For Store and Move, validation includes a concurrency-safe rack-capacity check. The protected operation must lock the pallet, then lock the affected `locations` rows in stable ID order and verify that no other non-shipped pallet occupies the destination when `location_type = rack`. It must keep those locks through the pallet update and history insert. Packing and shipping staging locations deliberately allow multiple pallets.
@@ -755,6 +757,8 @@ The frontend displays the first eligible result as:
 **PULL FIRST**
 
 The frontend sums current quantities from the complete eligible result and marks only its first pallet. It derives FULL/PARTIAL from the pallet snapshot. A separate held count provides an unavailable notice without affecting totals or FIFO. Refresh and focus refetch current data; loading and failed refreshes hide cached inventory rather than presenting it as current. This read cannot mutate inventory.
+
+The Pull screen obtains fresh FIFO guidance through the same Find read before review. **PULL FIRST** remains advisory; a non-FIFO pallet warns and identifies the oldest eligible rack but is not rejected solely for FIFO order. The Pull RPC validates pallet state and quantities, not FIFO allocation. A successful pull invalidates Find and Pull query caches so returning to Find refetches balances and order. A lost response is retried with the same frozen payload and idempotency key; the UI does not optimistically claim success.
 
 ---
 

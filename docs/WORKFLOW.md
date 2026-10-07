@@ -289,7 +289,7 @@ The oldest eligible pallet is clearly marked:
 
 Pallets on hold, shipped pallets, and empty pallets are excluded from the available list and FIFO recommendation. If positive-quantity held inventory exists for the part, Find shows a separate notice without adding it to available totals.
 
-Workers can refresh the live read. While reloading or after a failed refresh, the screen does not present cached quantities as current. A pallet opens a read-only detail; Pull Boxes is not implemented in this workflow yet.
+Workers can refresh the live read. While reloading or after a failed refresh, the screen does not present cached quantities as current. A pallet opens a read-only detail with a **PULL BOXES** action that opens a reloadable `/pull?code=...` route. Returning to Find after a successful pull refetches current totals and FIFO order.
 
 ---
 
@@ -301,26 +301,14 @@ Remove one or more boxes from an existing pallet while keeping the remaining pal
 
 ## Steps
 
-1. Worker taps **PULL BOXES**.
-2. Worker scans or selects a pallet.
-3. The app shows current:
-   - Box quantity
-   - Piece quantity
-4. Worker enters the number of boxes being removed.
-5. The app calculates:
-   - Pieces being removed
-   - Remaining boxes
-   - Remaining pieces
-6. Worker may enter:
-   - PO
-   - BOL
-   - Reason
-7. Worker taps **REVIEW PULL**.
-8. The app displays a confirmation summary.
-9. Worker taps **CONFIRM PULL**.
-10. The app records a **SHIPPING PULL** or other appropriate transaction.
-11. The app updates the pallet's current quantity.
-12. A success screen confirms the new balance.
+1. Worker opens **PULL BOXES** from Home and manually enters a pallet code, or opens a pallet from Find and taps **PULL BOXES**. Camera scanning is deferred.
+2. The app loads current pallet, part, rack, box/piece balance, FULL/PARTIAL state, and current FIFO guidance from the database. A held, shipped, empty, or non-rack pallet cannot proceed.
+3. Worker enters a positive whole-box quantity. The app previews boxes/pieces **REMOVING** and **REMAINING** using the pallet's packing snapshot.
+4. Worker may enter optional PO and BOL references. No paperwork or reason is required for a normal partial pull.
+5. Worker taps **REVIEW PULL**. The app refreshes current state and FIFO guidance; if the balance, lifecycle, or location changed, it asks for another review.
+6. The review shows pallet, part, rack, current quantity, removal, remainder, FIFO guidance, and references. Nothing has changed yet.
+7. Worker taps **CONFIRM PULL**. The protected `pull_boxes` RPC locks the pallet and compares both reviewed box and piece balances to its actual state, then calculates pieces, updates the pallet, and inserts one `box_pull` transaction atomically.
+8. The success screen shows the authoritative server-returned removal, remainder, and rack. The worker may finish or view the refreshed pallet.
 
 ## Example
 
@@ -341,11 +329,13 @@ After:
 
 ## Rules
 
-The app must not allow a worker to pull more boxes than are available.
+Mission 7 supports **partial pulls only**. Pulling the final boxes would leave a zero-balance pallet in `stored` without a defined terminal transition; the Shipping workflow owns that final movement. Pulling all remaining boxes shows **WHOLE PALLET — USE SHIPPING**. This is a scope boundary, not a new lifecycle state.
 
-If the requested amount exceeds available inventory, the app must block confirmation and show:
+FIFO is a recommendation, not an allocation rule. The current oldest eligible stored rack pallet shows **PULL FIRST**. A different pallet shows **NOT FIFO PALLET**, names the oldest eligible pallet and location, and may still be pulled after review.
 
-**QUANTITY TOO HIGH**
+The server derives the actor from Supabase Auth, requires an active worker or supervisor, and rejects holds, shipped/non-rack pallets, invalid quantities, stale reviewed balances, and pulls above available stock. A stale request shows **INVENTORY CHANGED** and requires a refresh and new review. A too-large request shows **TOO MANY BOXES**.
+
+Each confirmed request has an idempotency key. If a response is lost, the screen shows **NOT SAVED YET** and retries the *same frozen request and key*. A matching retry returns the original event without another quantity change. A changed request or actor cannot reuse the key. No offline write is queued.
 
 ---
 
