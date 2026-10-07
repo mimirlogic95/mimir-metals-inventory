@@ -343,24 +343,18 @@ Each confirmed request has an idempotency key. If a response is lost, the screen
 
 ## Goal
 
-Move a pallet from one storage location to another while preserving movement history.
+Move a stored pallet between two racks while preserving quantity, FIFO age, and movement history. Move is not Store or Shipping.
 
 ## Steps
 
-1. Worker taps **MOVE**.
-2. Worker scans the pallet QR.
-3. The app displays the current location.
-4. Worker scans the destination rack QR.
-5. The app validates the destination.
-6. The app shows:
-   - Current location
-   - New location
-7. Worker taps **CONFIRM MOVE**.
-8. The app records a **MOVE** transaction.
-9. The app updates the pallet's current location.
-10. A success screen confirms the move.
+1. Worker opens **MOVE** from Home and enters a pallet code, or taps **MOVE PALLET** in Find detail. Camera scanning is deferred; lowercase codes normalize to uppercase.
+2. The app loads the pallet's authoritative current rack, part, quantity, fill state, and lifecycle. Only `stored` pallets in a rack may proceed. Created pallets use Store; shipped, unlocated, and on-hold pallets cannot Move. A hold must be released through a later protected workflow before relocation.
+3. Worker enters a different active rack. The app shows **OPEN** or **LOCATION OCCUPIED**. Packing and shipping staging are not Move destinations even though those location types can contain multiple pallets.
+4. **REVIEW MOVE** refreshes the pallet and destination and shows pallet, part, **FROM**, **TO**, boxes, and pieces. Nothing is saved yet.
+5. **CONFIRM MOVE** calls the protected `move_pallet` RPC with the reviewed source-location ID and a retry key. It locks the pallet and source/destination racks, rejects a changed source or occupied destination, updates only current location, and appends one `moved` event atomically.
+6. The success screen displays the server-returned FROM/TO and unchanged quantity. Find refreshes from the database; moving does not change `packed_at` or FIFO age.
 
-Before committing a move, the future protected Move operation must lock the pallet, lock the source and destination locations in stable ID order, and recheck destination occupancy. It must reject an occupied rack while allowing multiple pallets in packing or shipping staging. The same **LOCATION OCCUPIED** message used by Store applies.
+A stale review shows **LOCATION CHANGED** and requires refresh. A failed pallet or rack lookup shows **COULDN'T LOAD** because no write was attempted. Only an uncertain **CONFIRM MOVE** result shows **NOT SAVED YET** and retries the same frozen request/key; an exact retry returns the original event without moving again. No offline write is queued. The database occupancy trigger remains the final rack-capacity guard.
 
 ## Example
 

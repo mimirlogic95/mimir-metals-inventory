@@ -147,6 +147,9 @@ describe('FindInventoryPage', () => {
     expect(
       within(detail).getByRole('link', { name: 'PULL BOXES' }),
     ).toHaveAttribute('href', '/pull?code=MM-P-0000007');
+    expect(
+      within(detail).getByRole('link', { name: 'MOVE PALLET' }),
+    ).toHaveAttribute('href', '/move?code=MM-P-0000007');
   });
 
   it('shows no available inventory without including held pallets', async () => {

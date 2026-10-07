@@ -1578,6 +1578,10 @@ Then update:
 
 `pallets.current_location_id`
 
+Mission 8 `move_pallet` accepts a pallet code, the reviewed `expected_current_location_id`, a different active rack destination, and an idempotency key. It locks the pallet, requires `stored` in a rack (not held, shipped, created, or unlocated), compares the actual source to the reviewed source, then locks both locations in stable ID order and rechecks occupancy. A changed source fails with `LOCATION CHANGED`; an occupied rack fails with `LOCATION OCCUPIED`. Packing and shipping staging are not Move destinations. A matching retry returns its original transaction result before checking the now-changed live rack; changed request fields or actor conflict.
+
+The `moved` event stores server-derived actor and timestamp, previous/new location IDs, unchanged before/after boxes and pieces, zero box/piece changes, and the retry key. The pallet row remains the current-location source of truth. Quantity, packing snapshots, `packed_at`, part/heat/lot/machine data, hold context, and lifecycle are not modified. Held pallets retain their rack occupancy and cannot Move until a future protected release operation.
+
 ---
 
 # Count Match Transaction
@@ -1694,7 +1698,7 @@ Preferred approach:
 - Occupancy is derived by querying active pallets at a location.
 - A database trigger locks the affected `locations` rows and rejects a second active pallet assigned to a rack.
 - Changing a shared location to `rack` is rejected while it contains more than one active pallet.
-- The protected Store RPC locks the pallet first, then the source and destination location rows in stable ID order, and rechecks destination occupancy before updating the pallet and inserting history. A future Move RPC must do the same.
+- Protected Store and Move RPCs lock the pallet first, then the source and destination location rows in stable ID order, and recheck destination occupancy before updating the pallet and inserting history.
 - If a cached location status is later added for performance, it must be maintained transactionally.
 
 A partial unique index on `pallets.current_location_id` cannot express this rule because `location_type` belongs to `locations`. A global unique constraint would also incorrectly prevent multiple pallets in packing and shipping staging.

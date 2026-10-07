@@ -533,7 +533,27 @@ Expect:
 - Pallet remains at B-003-AC
 - No MOVED transaction is inserted
 
-Moving multiple pallets into the same `packing` or `shipping_staging` location remains allowed.
+Move rejects `packing` and `shipping_staging` destinations. Their shared-capacity schema rule remains relevant to later workflows, not to Mission 8 Move.
+
+After verifying that the CLI is linked to **Mimir Metals Inventory Development**, run the rollback-only fictional Move test:
+
+```text
+npx --yes supabase@2.119.0 db query --linked --file supabase/tests/move_pallet.sql
+```
+
+It covers worker/supervisor access, inactive/unauthenticated denial, fixed `SECURITY DEFINER` boundary, direct-write denial, eligible and ineligible lifecycle/source/destination states, occupied racks including held occupants, reviewed-source stale rejection, exact retry and key conflicts, unchanged quantity/snapshot/lifecycle, correct Move history, and rollback on forced audit failure.
+
+For real parallel requests on the verified development project, run the no-write guard first:
+
+```text
+node --check supabase/tests/move_pallet_concurrency.mjs
+node supabase/tests/move_pallet_concurrency.mjs <verified-development-project-ref> --verify-only
+node supabase/tests/move_pallet_concurrency.mjs <verified-development-project-ref>
+```
+
+The script checks CLI link, environment host, and authenticated project identity, then creates fictional pallets and tests two pallets competing for one rack and two destination requests competing on one pallet. Exactly one succeeds in each race. It verifies one `LOCATION OCCUPIED`, one `LOCATION CHANGED`, unchanged quantity, exact retry, and no duplicate Move history. It leaves fictional audit records intact. Do not run against production.
+
+Browser validation should cover Home manual lookup and Find → pallet detail → Move, an open destination, review-before-save, one confirmed Move, server-returned success, updated Find rack with unchanged FIFO age, an occupied-rack warning, and 320px/390px/768px layouts. UI tests distinguish a failed pallet/rack read (**COULDN'T LOAD**) from an uncertain confirmation (**NOT SAVED YET**) and verify that confirmation retries keep the same request key. Do not report browser checks as passed unless actually exercised.
 
 Also verify that:
 

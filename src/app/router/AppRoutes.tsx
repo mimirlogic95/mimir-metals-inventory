@@ -25,6 +25,11 @@ const PullBoxesPage = lazy(async () => {
   return { default: module.PullBoxesPage };
 });
 
+const MovePalletPage = lazy(async () => {
+  const module = await import('@/features/move-pallet/MovePalletPage');
+  return { default: module.MovePalletPage };
+});
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -61,13 +66,22 @@ export function AppRoutes() {
           </Suspense>
         }
       />
+      <Route
+        path="/move"
+        element={
+          <Suspense fallback={<RouteLoadingState title="Move Pallet" />}>
+            <MovePalletPage />
+          </Suspense>
+        }
+      />
       {taskRoutes
         .filter(
           (task) =>
             task.path !== '/create-pallet' &&
             task.path !== '/store' &&
             task.path !== '/find' &&
-            task.path !== '/pull',
+            task.path !== '/pull' &&
+            task.path !== '/move',
         )
         .map((task) => (
           <Route
