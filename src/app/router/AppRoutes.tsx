@@ -30,6 +30,11 @@ const MovePalletPage = lazy(async () => {
   return { default: module.MovePalletPage };
 });
 
+const CountPalletPage = lazy(async () => {
+  const module = await import('@/features/count-inventory/CountPalletPage');
+  return { default: module.CountPalletPage };
+});
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -74,6 +79,14 @@ export function AppRoutes() {
           </Suspense>
         }
       />
+      <Route
+        path="/count"
+        element={
+          <Suspense fallback={<RouteLoadingState title="Count Inventory" />}>
+            <CountPalletPage />
+          </Suspense>
+        }
+      />
       {taskRoutes
         .filter(
           (task) =>
@@ -81,7 +94,8 @@ export function AppRoutes() {
             task.path !== '/store' &&
             task.path !== '/find' &&
             task.path !== '/pull' &&
-            task.path !== '/move',
+            task.path !== '/move' &&
+            task.path !== '/count',
         )
         .map((task) => (
           <Route

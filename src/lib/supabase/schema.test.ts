@@ -1,6 +1,7 @@
 import migrationSql from '../../../supabase/migrations/20261004150000_create_v1_database_foundation.sql?raw';
 import createPalletMigrationSql from '../../../supabase/migrations/20261004200000_add_create_pallet_rpc.sql?raw';
 import storePalletMigrationSql from '../../../supabase/migrations/20261004210000_add_store_pallet_rpc.sql?raw';
+import countPalletMigrationSql from '../../../supabase/migrations/20261009120000_add_count_pallet_rpc.sql?raw';
 import seedSql from '../../../supabase/seed.sql?raw';
 
 const v1Tables = [
@@ -227,6 +228,49 @@ describe('Store Pallet protected operation source', () => {
     expect(storePalletMigrationSql).not.toMatch(
       /grant execute[^;]+to\s+(public|anon)/is,
     );
+  });
+});
+
+describe('Count protected operation source', () => {
+  it('locks and compares reviewed state before writing without mutating pallet quantities', () => {
+    expect(countPalletMigrationSql).toContain('for update of pallet');
+    expect(countPalletMigrationSql).toContain('p_expected_current_boxes');
+    expect(countPalletMigrationSql).toContain('p_expected_current_pieces');
+    expect(countPalletMigrationSql).toContain('p_expected_current_location_id');
+    expect(countPalletMigrationSql).toContain('INVENTORY CHANGED');
+    expect(countPalletMigrationSql).not.toMatch(/update public\.pallets/);
+  });
+
+  it('uses snapshot math, one pending request, and linked zero-delta audit events', () => {
+    expect(countPalletMigrationSql).toContain(
+      'pieces_per_box_snapshot::bigint',
+    );
+    expect(countPalletMigrationSql).toContain(
+      'adjustment_requests_one_pending_per_pallet_idx',
+    );
+    expect(countPalletMigrationSql).toContain(
+      'insert into public.adjustment_requests',
+    );
+    expect(countPalletMigrationSql).toContain(
+      'insert into public.inventory_transactions',
+    );
+    expect(countPalletMigrationSql).toContain("'count_matched'");
+    expect(countPalletMigrationSql).toContain("'adjustment_requested'");
+    expect(countPalletMigrationSql).toContain('ADJUSTMENT ALREADY PENDING');
+  });
+
+  it('keeps the definer boundary authenticated and retries idempotently', () => {
+    expect(countPalletMigrationSql).toContain('actor_id uuid := auth.uid()');
+    expect(countPalletMigrationSql).toContain('security definer');
+    expect(countPalletMigrationSql).toContain("set search_path = ''");
+    expect(countPalletMigrationSql).toContain(
+      'pg_catalog.pg_advisory_xact_lock',
+    );
+    expect(countPalletMigrationSql).toContain('IDEMPOTENCY KEY CONFLICT');
+    expect(countPalletMigrationSql).toContain(
+      'from public, anon, authenticated',
+    );
+    expect(countPalletMigrationSql).toContain('to authenticated;');
   });
 });
 

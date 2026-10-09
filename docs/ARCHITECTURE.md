@@ -509,8 +509,7 @@ create_pallet(...)
 store_pallet(...)
 pull_boxes(...)
 move_pallet(...)
-record_count(...)
-request_adjustment(...)
+count_pallet(...)
 approve_adjustment(...)
 reject_adjustment(...)
 place_hold(...)
@@ -789,6 +788,24 @@ The recommendation is advisory.
 The worker may choose another valid location.
 
 No machine learning or optimization service is required.
+
+---
+
+# Mission 9 Count Architecture
+
+Mission 9 Count is one authenticated `count_pallet` SECURITY DEFINER operation
+with an empty `search_path`. It derives the actor from `auth.uid()`, requires
+an active worker/supervisor profile, serializes the idempotency key, then locks
+the pallet before validating lifecycle, reviewed boxes/pieces/location, and
+pending-request status. It derives counted pieces from the pallet snapshot.
+The function writes either one matched audit event or one pending adjustment
+request plus linked zero-delta discrepancy event; it never updates `pallets`.
+The partial unique pending-request index protects the one-pending rule even
+outside the RPC's row-lock path. Browser roles retain read-only table grants;
+only authenticated callers may execute the function. Count and Pull serialize
+on the same pallet lock, so a Pull committed first makes a reviewed Count stale.
+The frontend uses one frozen request/key for uncertain confirmation retries and
+refetches Count/Find data after server-confirmed success.
 
 ---
 

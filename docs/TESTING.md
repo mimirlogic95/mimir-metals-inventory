@@ -563,6 +563,25 @@ Also verify that:
 
 ---
 
+## Mission 9 Count database validation
+
+Mission 9 rollback-only SQL validation is `supabase/tests/count_pallet.sql`.
+After verifying the CLI link is **Mimir Metals Inventory Development**, run:
+
+```text
+npx --yes supabase@2.119.0 db query --linked --file supabase/tests/count_pallet.sql
+```
+
+It checks active worker/supervisor access, anonymous/inactive rejection,
+countable lifecycle rules, zero/higher/lower counts, snapshot piece math,
+matched/discrepancy audit events, pending uniqueness, stale reviewed state,
+idempotent retries, and atomic rollback on forced history failure. The
+development-only `supabase/tests/count_pallet_concurrency.mjs` additionally
+checks a real simultaneous discrepancy race and stale Count after Pull; it
+creates fictional persistent records and must never run against production.
+
+---
+
 # Integration Test — Matching Count
 
 Given:

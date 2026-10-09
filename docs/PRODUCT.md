@@ -294,6 +294,18 @@ This provides a traceable history of what happened to each pallet.
 
 Workers may perform physical inventory counts.
 
+V1 counts boxes on a positive-balance stored rack pallet, including a rack pallet
+on hold whose previous state was stored. Created/packing, shipping-staging,
+shipped, empty, and unlocated pallets are not part of this warehouse Count flow.
+The server derives counted pieces from the pallet's packing snapshot. A physical
+zero is a valid observation, not an instruction to deplete or ship inventory.
+
+A matching count records who confirmed the physical quantity without creating
+an adjustment request or changing the pallet. A discrepancy creates one pending
+request and a linked audit event; pallet quantities and lifecycle remain unchanged.
+While a request is pending, another discrepancy request for that pallet is blocked.
+The supervisor workflow is not yet implemented.
+
 If the physical count does not match the system quantity, the worker may submit an adjustment request.
 
 The worker cannot directly overwrite inventory.

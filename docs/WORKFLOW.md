@@ -379,15 +379,16 @@ Compare physical inventory with system inventory.
 ## Steps
 
 1. Worker taps **COUNT**.
-2. Worker scans the pallet QR.
-3. The app displays the system box quantity.
+2. Worker enters the pallet code manually, or arrives from Find pallet detail.
+   Camera scanning remains deferred.
+3. The app displays the current SYSTEM box and piece quantities and location.
 4. Worker enters the physical box count.
 5. If the count matches:
-   - Record a successful count event.
+   - Record an immutable `count_matched` event with zero quantity change.
 6. If the count does not match:
    - Show the difference.
    - Require a reason.
-   - Create an adjustment request.
+   - Create a pending adjustment request and linked `adjustment_requested` event.
 7. The worker cannot directly change inventory.
 
 ## Example
@@ -405,6 +406,23 @@ Difference:
 `-2 boxes`
 
 The app creates an adjustment request.
+
+Mission 9 Count accepts positive-balance stored rack pallets and on-hold rack
+pallets whose saved previous lifecycle was stored. It rejects created, staging,
+shipped, empty, and unlocated pallets. The worker enters boxes only; the server
+uses `pieces_per_box_snapshot` for counted pieces and proposed difference. Zero
+physical boxes is allowed as a discrepancy. No Count outcome changes pallet
+quantity, lifecycle, or location. A supervisor decision is a later workflow.
+
+Before saving, Count locks the pallet and compares system boxes, pieces, and
+location with what the worker reviewed. A stale review fails with `INVENTORY
+CHANGED`; the worker refreshes and recounts. One unresolved discrepancy request
+per pallet is allowed, even if the pallet later changes, to avoid competing
+supervisor decisions. The worker selects a short reason for a discrepancy and
+may add a brief note. Exact retries reuse the same request key. Lookup failures
+say `COULDN'T LOAD`; an uncertain confirmation says `NOT SAVED YET` and retries
+the same frozen request. Find totals do not change until a later approved
+adjustment actually changes inventory.
 
 ---
 

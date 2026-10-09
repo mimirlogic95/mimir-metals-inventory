@@ -275,8 +275,7 @@ create_pallet(...)
 store_pallet(...)
 pull_boxes(...)
 move_pallet(...)
-record_count(...)
-request_adjustment(...)
+count_pallet(...)
 approve_adjustment(...)
 reject_adjustment(...)
 place_hold(...)
@@ -503,6 +502,17 @@ Example:
 If only supervisors should approve adjustments, the backend must reject unauthorized approval attempts even if a worker manually enters the route.
 
 Client-side routing is not an authorization boundary.
+
+---
+
+# Count Security
+
+Mission 9 Count uses an authenticated-only protected RPC. Workers may report
+observed boxes and create a pending adjustment request, but cannot directly
+insert protected request/history rows, update pallet quantities, or set review
+fields. The server derives actor and pieces, checks active role and reviewed
+state after locking the pallet, and preserves the current inventory on every
+Count outcome. Supervisor approval/rejection remains unimplemented.
 
 ---
 

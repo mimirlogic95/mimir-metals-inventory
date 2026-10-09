@@ -1368,6 +1368,18 @@ Nullable.
 
 ---
 
+### count_location_id
+
+Type:
+
+`uuid`
+
+Nullable foreign key to `locations.id`, with restricted deletion. Mission 9
+Count sets this to the physical rack at count time so later review does not
+depend on the pallet's current location. Older requests may be null.
+
+---
+
 ### status
 
 Type:
@@ -1603,6 +1615,19 @@ Create:
 `count_matched`
 
 This creates evidence that the pallet was physically verified.
+
+Mission 9's protected `count_pallet` RPC records `count_matched` with the
+authoritative system before/after quantities equal, zero quantity changes,
+the same before/after location, actor, timestamp, and idempotency key. The
+metadata preserves the counted boxes/pieces and lifecycle at observation.
+The pallet row is not changed. A discrepancy inserts a pending
+`adjustment_requests` row and linked `adjustment_requested` zero-delta event
+atomically. The request preserves server-derived system/count/delta quantities,
+count location, worker, reason, and timestamp; review fields remain null.
+One pending request per pallet is enforced by a partial unique index, and the
+RPC locks the pallet before checking for an existing pending request. Exact
+retries return their original event, while a changed request or actor using
+the same key fails. Supervisor approval/rejection is not implemented in Mission 9.
 
 ---
 

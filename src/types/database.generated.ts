@@ -17,6 +17,7 @@ export type Database = {
       adjustment_requests: {
         Row: {
           box_difference: number
+          count_location_id: string | null
           counted_boxes: number
           counted_pieces: number
           created_at: string
@@ -36,6 +37,7 @@ export type Database = {
         }
         Insert: {
           box_difference: number
+          count_location_id?: string | null
           counted_boxes: number
           counted_pieces: number
           created_at?: string
@@ -55,6 +57,7 @@ export type Database = {
         }
         Update: {
           box_difference?: number
+          count_location_id?: string | null
           counted_boxes?: number
           counted_pieces?: number
           created_at?: string
@@ -73,6 +76,13 @@ export type Database = {
           updated_at?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "adjustment_requests_count_location_id_fkey"
+            columns: ["count_location_id"]
+            isOneToOne: false
+            referencedRelation: "locations"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "adjustment_requests_pallet_id_fkey"
             columns: ["pallet_id"]
@@ -452,6 +462,37 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      count_pallet: {
+        Args: {
+          p_counted_boxes: number
+          p_expected_current_boxes: number
+          p_expected_current_location_id: string
+          p_expected_current_pieces: number
+          p_idempotency_key: string
+          p_pallet_code: string
+          p_reason_code: string
+          p_reason_notes: string
+        }
+        Returns: {
+          adjustment_request_id: string
+          box_difference: number
+          counted_boxes: number
+          counted_pieces: number
+          description: string
+          lifecycle_status: Database["public"]["Enums"]["pallet_lifecycle_status"]
+          location_code: string
+          location_id: string
+          outcome: string
+          pallet_code: string
+          pallet_id: string
+          part_number: string
+          piece_difference: number
+          recorded_at: string
+          system_boxes: number
+          system_pieces: number
+          transaction_id: string
+        }[]
+      }
       create_pallet: {
         Args: {
           p_boxes: number
