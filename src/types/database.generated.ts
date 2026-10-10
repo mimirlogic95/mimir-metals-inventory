@@ -17,6 +17,13 @@ export type Database = {
       adjustment_requests: {
         Row: {
           box_difference: number
+          count_inventory_version: number | null
+          count_lifecycle_status:
+            | Database["public"]["Enums"]["pallet_lifecycle_status"]
+            | null
+          count_lifecycle_status_before_hold:
+            | Database["public"]["Enums"]["pallet_lifecycle_status"]
+            | null
           count_location_id: string | null
           counted_boxes: number
           counted_pieces: number
@@ -37,6 +44,13 @@ export type Database = {
         }
         Insert: {
           box_difference: number
+          count_inventory_version?: number | null
+          count_lifecycle_status?:
+            | Database["public"]["Enums"]["pallet_lifecycle_status"]
+            | null
+          count_lifecycle_status_before_hold?:
+            | Database["public"]["Enums"]["pallet_lifecycle_status"]
+            | null
           count_location_id?: string | null
           counted_boxes: number
           counted_pieces: number
@@ -57,6 +71,13 @@ export type Database = {
         }
         Update: {
           box_difference?: number
+          count_inventory_version?: number | null
+          count_lifecycle_status?:
+            | Database["public"]["Enums"]["pallet_lifecycle_status"]
+            | null
+          count_lifecycle_status_before_hold?:
+            | Database["public"]["Enums"]["pallet_lifecycle_status"]
+            | null
           count_location_id?: string | null
           counted_boxes?: number
           counted_pieces?: number
@@ -308,6 +329,7 @@ export type Database = {
           heat_number: string
           hold_reason: string | null
           id: string
+          inventory_version: number
           lifecycle_status: Database["public"]["Enums"]["pallet_lifecycle_status"]
           lifecycle_status_before_hold:
             | Database["public"]["Enums"]["pallet_lifecycle_status"]
@@ -333,6 +355,7 @@ export type Database = {
           heat_number: string
           hold_reason?: string | null
           id?: string
+          inventory_version?: number
           lifecycle_status?: Database["public"]["Enums"]["pallet_lifecycle_status"]
           lifecycle_status_before_hold?:
             | Database["public"]["Enums"]["pallet_lifecycle_status"]
@@ -358,6 +381,7 @@ export type Database = {
           heat_number?: string
           hold_reason?: string | null
           id?: string
+          inventory_version?: number
           lifecycle_status?: Database["public"]["Enums"]["pallet_lifecycle_status"]
           lifecycle_status_before_hold?:
             | Database["public"]["Enums"]["pallet_lifecycle_status"]
@@ -462,6 +486,34 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      approve_adjustment_request: {
+        Args: {
+          p_idempotency_key: string
+          p_request_id: string
+          p_review_notes: string
+        }
+        Returns: {
+          after_boxes: number
+          after_pieces: number
+          before_boxes: number
+          before_pieces: number
+          box_change: number
+          decision_status: Database["public"]["Enums"]["adjustment_status"]
+          lifecycle_status: Database["public"]["Enums"]["pallet_lifecycle_status"]
+          location_code: string
+          location_id: string
+          pallet_code: string
+          pallet_id: string
+          part_number: string
+          piece_change: number
+          request_id: string
+          review_notes: string
+          reviewed_at: string
+          reviewed_by_user_id: string
+          reviewer_name: string
+          transaction_id: string
+        }[]
+      }
       count_pallet: {
         Args: {
           p_counted_boxes: number
@@ -571,6 +623,34 @@ export type Database = {
           previous_boxes: number
           previous_pieces: number
           pulled_at: string
+          transaction_id: string
+        }[]
+      }
+      reject_adjustment_request: {
+        Args: {
+          p_idempotency_key: string
+          p_request_id: string
+          p_review_notes: string
+        }
+        Returns: {
+          after_boxes: number
+          after_pieces: number
+          before_boxes: number
+          before_pieces: number
+          box_change: number
+          decision_status: Database["public"]["Enums"]["adjustment_status"]
+          lifecycle_status: Database["public"]["Enums"]["pallet_lifecycle_status"]
+          location_code: string
+          location_id: string
+          pallet_code: string
+          pallet_id: string
+          part_number: string
+          piece_change: number
+          request_id: string
+          review_notes: string
+          reviewed_at: string
+          reviewed_by_user_id: string
+          reviewer_name: string
           transaction_id: string
         }[]
       }

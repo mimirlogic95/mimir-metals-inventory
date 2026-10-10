@@ -304,7 +304,7 @@ A matching count records who confirmed the physical quantity without creating
 an adjustment request or changing the pallet. A discrepancy creates one pending
 request and a linked audit event; pallet quantities and lifecycle remain unchanged.
 While a request is pending, another discrepancy request for that pallet is blocked.
-The supervisor workflow is not yet implemented.
+An active supervisor reviews the request separately; Count itself never changes inventory.
 
 If the physical count does not match the system quantity, the worker may submit an adjustment request.
 
@@ -327,7 +327,14 @@ A supervisor must approve or reject the adjustment.
 
 Supervisors may approve or reject inventory adjustments.
 
-If approved, the system creates a new transaction.
+Approval requires a different active supervisor from the count requester, an
+unchanged count-time pallet version/state, and a positive resulting box balance.
+An approved correction updates current boxes and snapshot-derived pieces and
+creates one immutable adjustment transaction. A held rack pallet stays held.
+Rejection requires a brief reason, adds a zero-change decision event, and does
+not change the pallet. A reported physical zero remains valid Count evidence,
+but V1 cannot approve a zero-box result; the supervisor may reject it for
+recount or investigation. Shipping/final depletion is a separate workflow.
 
 The previous quantity is never erased from history.
 

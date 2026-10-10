@@ -2,6 +2,7 @@ import migrationSql from '../../../supabase/migrations/20261004150000_create_v1_
 import createPalletMigrationSql from '../../../supabase/migrations/20261004200000_add_create_pallet_rpc.sql?raw';
 import storePalletMigrationSql from '../../../supabase/migrations/20261004210000_add_store_pallet_rpc.sql?raw';
 import countPalletMigrationSql from '../../../supabase/migrations/20261009120000_add_count_pallet_rpc.sql?raw';
+import adjustmentDecisionsMigrationSql from '../../../supabase/migrations/20261009180000_add_supervisor_adjustment_decisions.sql?raw';
 import seedSql from '../../../supabase/seed.sql?raw';
 
 const v1Tables = [
@@ -271,6 +272,59 @@ describe('Count protected operation source', () => {
       'from public, anon, authenticated',
     );
     expect(countPalletMigrationSql).toContain('to authenticated;');
+  });
+});
+
+describe('supervisor adjustment decision migration source', () => {
+  it('captures pallet version and count-time lifecycle without reconstructing old requests', () => {
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      'add column inventory_version bigint',
+    );
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      'pallets_bump_inventory_version',
+    );
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      'adjustment_requests_capture_count_context',
+    );
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      'count_inventory_version is null',
+    );
+  });
+
+  it('locks pallet before request and enforces the V1 zero-result policy inside approval', () => {
+    expect(adjustmentDecisionsMigrationSql).toContain('for update of pallet');
+    expect(adjustmentDecisionsMigrationSql).toContain('for update;');
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      'selected_pallet.inventory_version <> selected_request.count_inventory_version',
+    );
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      'ZERO BALANCE NOT SUPPORTED',
+    );
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      'CANNOT APPROVE OWN REQUEST',
+    );
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      'pieces_per_box_snapshot::bigint',
+    );
+  });
+
+  it('keeps both decisions at an authenticated-only security-definer boundary', () => {
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      'actor_id uuid := auth.uid()',
+    );
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      "profile.role = 'supervisor'",
+    );
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      "security definer set search_path = ''",
+    );
+    expect(adjustmentDecisionsMigrationSql).toContain(
+      'pg_catalog.pg_advisory_xact_lock',
+    );
+    expect(adjustmentDecisionsMigrationSql).toContain('IDEMPOTENCY CONFLICT');
+    expect(adjustmentDecisionsMigrationSql).not.toMatch(
+      /grant execute[^;]+to\s+(public|anon)/is,
+    );
   });
 });
 

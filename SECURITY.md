@@ -512,7 +512,7 @@ observed boxes and create a pending adjustment request, but cannot directly
 insert protected request/history rows, update pallet quantities, or set review
 fields. The server derives actor and pieces, checks active role and reviewed
 state after locking the pallet, and preserves the current inventory on every
-Count outcome. Supervisor approval/rejection remains unimplemented.
+Count outcome. Mission 10 adds separate supervisor-only decision RPCs.
 
 ---
 
@@ -529,7 +529,28 @@ The server must verify:
 - Current inventory has not changed in a way that invalidates the request
 - Resulting quantity is valid
 
-The system should not blindly approve a stale adjustment request.
+Mission 10 requires `auth.uid()` to resolve to an active supervisor inside each
+protected decision RPC. The Count requester cannot approve their own request.
+Rejection requires a supervisor reason. Both RPCs use an empty `search_path`,
+explicit authenticated-only EXECUTE grants, unique decision retry keys, and
+the pallet-before-request lock order. Browser roles cannot directly update
+pallet quantities or request review fields or insert decision events.
+
+Approval checks the count-time pallet version, quantity, rack, lifecycle,
+pre-hold context, packing-snapshot math, and linked Count evidence after
+locking. Any intervening pallet update, including a move away and back or a
+hold/release cycle, makes a request stale. Pre-Mission-10 pending requests have
+no trustworthy historical version and cannot be approved. Approval of a
+zero-box result is forbidden with `ZERO BALANCE NOT SUPPORTED`; the request and
+inventory remain unchanged so the supervisor can reject/recount. Held pallet
+approval preserves its hold and rack. Exact retries return one saved result;
+unknown network outcomes must retry the same frozen key rather than make a
+second decision.
+
+The existing adjustment-request SELECT policy remains in place: a worker can
+read their own requests, while active supervisors can read all. The supervisor
+queue checks role before querying; that UI check does not replace RLS or the
+RPC authorization boundary.
 
 If current state changed after the count, require review or recount rather than applying stale numbers.
 

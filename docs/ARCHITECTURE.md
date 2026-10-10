@@ -809,6 +809,30 @@ refetches Count/Find data after server-confirmed success.
 
 ---
 
+# Mission 10 Adjustment Decision Architecture
+
+`approve_adjustment_request` and `reject_adjustment_request` are authenticated-
+only, active-supervisor `SECURITY DEFINER` RPCs with empty `search_path` and
+fully qualified objects. Browser roles retain SELECT-only table grants and the
+existing adjustment-request RLS: workers see their own request rows; active
+supervisors see all. The supervisor route additionally checks the signed-in
+profile before loading the queue, but PostgreSQL is the permission boundary.
+
+The database captures a monotonic pallet `inventory_version` and Count-time
+lifecycle/hold context on new requests. Approval rejects any version, quantity,
+location, lifecycle, pre-hold, snapshot-arithmetic, or original Count-evidence
+mismatch. Legacy pending requests have null context and require rejection plus
+recount. Both decisions lock the idempotency key, then the pallet, then the
+request, matching Count's pallet-first order. Approval atomically changes
+current boxes/pieces and appends an applied event; rejection appends a zero-delta
+decision event without changing the pallet. A positive approved result is
+required; physical zero remains valid Count evidence but not an approvable V1
+balance. Exact retries return the original transaction before checking resolved
+request status. Unknown confirmation failures preserve the same frozen browser
+operation/key for retry; read failures never imply a write.
+
+---
+
 # Error Architecture
 
 Backend errors should map to worker-readable messages.

@@ -530,6 +530,23 @@ values (
   'stored'
 );
 
+-- A separate stored rack pallet keeps the legacy arithmetic fixture valid
+-- under the one-pending-request-per-pallet and count-context rules.
+insert into public.locations (id, location_code, location_type) values
+  ('99000000-0000-4000-8000-000000000002', 'M3-TEST-RACK-002', 'rack');
+insert into public.pallets (
+  id, pallet_code, part_id, heat_number, lot_number, packed_by_user_id,
+  pieces_per_box_snapshot, boxes_per_full_pallet_snapshot,
+  original_boxes, original_pieces, current_boxes, current_pieces,
+  current_location_id, lifecycle_status
+) values (
+  '91000000-0000-4000-8000-000000000007', 'MM-P-9000007',
+  '10000000-0000-4000-8000-000000000002', 'MM-M3-HEAT-07',
+  'MM-M3-LOT-07', '90000000-0000-4000-8000-000000000001',
+  700, 48, 10, 7000, 10, 7000,
+  '99000000-0000-4000-8000-000000000002', 'stored'
+);
+
 select pg_temp.assert_true(
   (
     select count(*) = 1
@@ -643,7 +660,7 @@ values
   ),
   (
     '93000000-0000-4000-8000-000000000002',
-    '91000000-0000-4000-8000-000000000006',
+    '91000000-0000-4000-8000-000000000007',
     '90000000-0000-4000-8000-000000000002',
     10,
     8,
@@ -779,7 +796,9 @@ begin
   end if;
 
   execute
-    'select count(*) from public.adjustment_requests'
+    $sql$select count(*) from public.adjustment_requests
+      where id in ('93000000-0000-4000-8000-000000000001',
+                   '93000000-0000-4000-8000-000000000002')$sql$
     into visible_count;
 
   if visible_count <> 1 then
@@ -865,7 +884,9 @@ begin
   );
   execute 'set local role authenticated';
   execute
-    'select count(*) from public.adjustment_requests'
+    $sql$select count(*) from public.adjustment_requests
+      where id in ('93000000-0000-4000-8000-000000000001',
+                   '93000000-0000-4000-8000-000000000002')$sql$
     into visible_count;
   execute 'reset role';
 

@@ -882,6 +882,19 @@ The value must be null whenever the pallet is not on hold.
 
 ---
 
+### inventory_version
+
+Type: `bigint`, nonnegative, default `0`.
+
+A database trigger increments this on every pallet update. New adjustment
+requests capture it at Count time. Equality at review detects an intervening
+change even if quantity/location/lifecycle later return to their prior values.
+This is an approval freshness guard, not a replacement for immutable transaction
+history. Existing pallets begin at version `0`; existing requests have no
+historical version and cannot be approved without a fresh Count.
+
+---
+
 ### created_at
 
 Type:
@@ -1380,6 +1393,18 @@ depend on the pallet's current location. Older requests may be null.
 
 ---
 
+### count_inventory_version and count lifecycle context
+
+`count_inventory_version` is a nullable `bigint`; `count_lifecycle_status` and
+`count_lifecycle_status_before_hold` use the pallet lifecycle enum. An insert
+trigger captures all three from the locked pallet at request creation rather
+than accepting browser values. A new eligible request records either `stored`
+or `on_hold` with a `stored` pre-hold state. They remain null together on
+pre-Mission-10 requests. Those older pending requests may be rejected, but
+cannot be approved because their past context cannot be reconstructed.
+
+---
+
 ### status
 
 Type:
@@ -1627,7 +1652,7 @@ count location, worker, reason, and timestamp; review fields remain null.
 One pending request per pallet is enforced by a partial unique index, and the
 RPC locks the pallet before checking for an existing pending request. Exact
 retries return their original event, while a changed request or actor using
-the same key fails. Supervisor approval/rejection is not implemented in Mission 9.
+the same key fails. Mission 10 implements the separate supervisor decision.
 
 ---
 
@@ -1651,17 +1676,18 @@ Worker creates a pending adjustment request.
 
 No pallet quantity changes yet.
 
-If supervisor approves:
-
-1. Validate that the request is still pending.
-2. Validate the current pallet quantity.
-3. Calculate the approved change.
-4. Insert `adjustment_approved` transaction.
-5. Update pallet current quantity.
-6. Mark adjustment request approved.
-7. Save supervisor and timestamp.
-
-All steps must occur atomically.
+If a different active supervisor approves, the protected RPC locks the pallet
+before the request, verifies status, count-time version/quantity/location/
+lifecycle/hold context, snapshot math, and linked Count event, then updates only
+current boxes and pieces, sets reviewer/time/note, and inserts one
+`adjustment_approved` before/change/after transaction atomically. Both stored
+and held stored-rack pallets retain their lifecycle, rack, and `packed_at`.
+Final zero-box approval is blocked with `ZERO BALANCE NOT SUPPORTED`; the request
+and rack remain intact. Rejection requires a supervisor reason, changes only
+request review fields, and inserts a linked zero-delta `adjustment_rejected`
+event. Both decisions have unique retry keys; exact retries return the saved
+event, while changed payload or actor reuse fails. Original Count evidence is
+never rewritten.
 
 ---
 
@@ -1813,7 +1839,7 @@ V1 should enforce at least these rules:
 - Pull quantity cannot exceed available boxes.
 - Shipped pallets cannot be used for new pulls.
 - Pallets on hold cannot be shipped through normal workflow.
-- Workers cannot directly approve their own adjustment unless they also hold supervisor authorization and the security rules explicitly allow it.
+- A supervisor cannot approve an adjustment request that they submitted; a different active supervisor is required.
 - Adjustment requests can only move from pending to approved or rejected.
 - Inventory transaction history is append-only for normal users.
 

@@ -457,6 +457,31 @@ Require authorization before an inventory discrepancy changes the system quantit
 ## Rule
 
 No approved adjustment should erase the original quantity or prior event history.
+In Mission 10, **SUPERVISOR ADJUSTMENTS** opens a phone-first pending queue and
+detail review. An active supervisor sees the requesting worker, time, count-time
+rack, original system quantity, physical count, signed proposal, current pallet
+state, and hold context. The supervisor must enter a confirmation step; rejection
+requires a reason. The server, not the screen, checks role and freshness again.
+The count requester cannot approve their own request; an authorized supervisor
+may reject it with a documented reason. Exact retries use the same decision key.
+
+Approval changes only the pallet's current boxes and snapshot-derived current
+pieces, marks the request approved, and adds an `adjustment_approved` event in
+one transaction. A stored pallet remains stored; a held pallet remains held in
+its rack. The original `adjustment_requested` event remains zero-delta evidence.
+Rejection changes request status and adds a zero-delta `adjustment_rejected`
+event while leaving pallet state untouched. Count-time quantity, rack, lifecycle,
+hold context, and pallet version must still agree for approval; even a
+move-away-and-return or hold/release cycle makes the request stale. Pre-Mission-10
+requests have no reconstructable version and require rejection/recount rather
+than speculative approval. A physical zero remains a pending Count request but
+**ZERO BALANCE NOT SUPPORTED** blocks its approval in V1; rejection with a
+recount/investigation reason is available. No automatic shipping or rack release
+occurs.
+
+Read failures say **COULDN'T LOAD**. An uncertain decision response says
+**NOT SAVED YET** and retries the exact frozen request/key. Known stale or
+resolved errors require refresh; no offline decision is queued.
 
 ---
 

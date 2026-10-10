@@ -582,6 +582,34 @@ creates fictional persistent records and must never run against production.
 
 ---
 
+## Mission 10 supervisor adjustment validation
+
+After verifying the CLI link is **Mimir Metals Inventory Development**, run:
+
+```text
+npx --yes supabase@2.119.0 db query --linked --file supabase/tests/adjustment_decisions.sql
+```
+
+The fictional SQL fixture begins a transaction and ends with `ROLLBACK`. It
+tests authenticated-only, active-supervisor approval/rejection; no direct
+browser writes; Count evidence/version capture; negative, positive, and held
+approval; zero-result blocking and rejection; move-away-and-return staleness;
+legacy pending-request staleness; self-approval denial; reviewer attribution;
+before/change/after audit math; exact retries and actor/payload conflicts.
+The prior database foundation fixture also runs after Mission 10; its request
+and RLS assertions use isolated fictional rows so live development history does
+not change test expectations.
+
+Persistent concurrency and browser scenarios require separate direct approval
+for the specific fictional fixtures and permanent events. Do not use the
+existing MM-P-0000013 pending request without specific authorization. On the
+supervisor screen, verify count-time versus current values, a deliberate
+confirmation step, positive/negative difference clarity, held/zero warnings,
+worker access denial, and exact-key retry after uncertain confirmation. Check
+320px, 390px, and 768px layouts; no horizontal overflow or tiny actions.
+
+---
+
 # Integration Test — Matching Count
 
 Given:

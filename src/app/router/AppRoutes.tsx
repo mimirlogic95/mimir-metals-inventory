@@ -35,6 +35,16 @@ const CountPalletPage = lazy(async () => {
   return { default: module.CountPalletPage };
 });
 
+const AdjustmentsPage = lazy(async () => {
+  const module = await import('@/features/adjustments/AdjustmentsPage');
+  return { default: module.AdjustmentsPage };
+});
+
+const AdjustmentReviewPage = lazy(async () => {
+  const module = await import('@/features/adjustments/AdjustmentsPage');
+  return { default: module.AdjustmentReviewPage };
+});
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -87,6 +97,22 @@ export function AppRoutes() {
           </Suspense>
         }
       />
+      <Route
+        path="/adjustments"
+        element={
+          <Suspense fallback={<RouteLoadingState title="Adjustments" />}>
+            <AdjustmentsPage />
+          </Suspense>
+        }
+      />
+      <Route
+        path="/adjustments/:requestId"
+        element={
+          <Suspense fallback={<RouteLoadingState title="Adjustment Review" />}>
+            <AdjustmentReviewPage />
+          </Suspense>
+        }
+      />
       {taskRoutes
         .filter(
           (task) =>
@@ -95,7 +121,8 @@ export function AppRoutes() {
             task.path !== '/find' &&
             task.path !== '/pull' &&
             task.path !== '/move' &&
-            task.path !== '/count',
+            task.path !== '/count' &&
+            task.path !== '/adjustments',
         )
         .map((task) => (
           <Route

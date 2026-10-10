@@ -19,6 +19,12 @@ export const taskRoutes = [
   { order: '06', title: 'Count', path: '/count', priority: 'primary' },
   { order: '07', title: 'Shipping', path: '/shipping', priority: 'secondary' },
   { order: '08', title: 'History', path: '/history', priority: 'secondary' },
+  {
+    order: '09',
+    title: 'Supervisor Adjustments',
+    path: '/adjustments',
+    priority: 'secondary',
+  },
 ] as const satisfies readonly TaskRoute[];
 
 export const primaryTaskRoutes = taskRoutes.filter(
