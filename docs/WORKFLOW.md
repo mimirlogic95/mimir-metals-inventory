@@ -494,12 +494,13 @@ Allow product to move directly from packing to shipping without warehouse storag
 ## Steps
 
 1. Worker creates pallet normally.
-2. Worker selects:
-   - HOT JOB / SHIPPING
-3. The pallet receives its normal unique pallet ID.
-4. The pallet is assigned:
-   - SHIPPING STAGING
-5. The app records the staging transaction.
+2. The pallet receives its normal unique pallet ID in `created` lifecycle.
+3. Worker opens SHIPPING and identifies that pallet.
+4. The pallet is assigned to an active SHIPPING STAGING location through a
+   separate reviewed and confirmed staging action. It may come from packing
+   or have no location; no fake rack is needed.
+5. The app records a zero-quantity-change staging transaction. The pallet is
+   still in the facility and is **NOT SHIPPED YET**.
 6. Shipping completes the shipment.
 7. The app records the **SHIPPED** transaction.
 
@@ -515,25 +516,36 @@ Skipping storage must not mean skipping traceability.
 
 ## Goal
 
-Help shipping locate and pull the correct inventory quickly.
+Dispatch the entire *remaining* pallet quantity with complete traceability.
 
 ## Steps
 
 1. Worker opens **SHIPPING**.
-2. Worker searches by:
-   - PO
-   - Part
-   - Pallet
-3. The app shows eligible inventory.
-4. FIFO recommendation is displayed.
-5. Worker selects or scans the pallet.
-6. Worker removes the required boxes.
-7. PO and BOL references may be recorded.
-8. The app creates the appropriate pull transaction.
-9. If the pallet is fully consumed:
-   - The pallet can transition to SHIPPED.
-10. If boxes remain:
-   - The pallet remains active inventory.
+2. Worker enters a pallet code or opens Shipping from a Find pallet detail.
+3. The app reads authoritative current quantity, lifecycle, and location.
+   Held and shipped pallets are blocked.
+4. A `created` hot job must stage from packing/no location. A stored rack
+   pallet may stage or dispatch directly. A staged pallet may dispatch;
+   staging is not a shipment.
+   An inactive rack or staging location may release a pallet already there;
+   only an active staging location may receive a newly staged pallet.
+5. Each staging action has its own review and confirmation. It preserves
+   boxes/pieces, original packing data, and packed date.
+6. For dispatch, the worker enters optional PO/BOL references and note,
+   reviews the entire remaining boxes/pieces and source, then confirms once.
+7. The protected RPC rechecks reviewed boxes, pieces, location, lifecycle,
+   and pallet version after locking. It clears the current location, sets
+   current quantity to zero and lifecycle to `shipped`, and writes one
+   immutable negative-delta `shipped` event atomically.
+8. The success screen uses server-returned shipped quantity, source, actor,
+   timestamp, and references. Find excludes the pallet from available rack
+   totals/FIFO. Its historical identity remains.
+
+An exact retry returns the original event using the same key. A stale request
+shows **INVENTORY CHANGED** and requires a fresh review. Failed reads show
+**COULDN'T LOAD**; uncertain confirmations show **NOT SAVED YET** and retry
+the frozen request. Shipping never performs a partial box pull; Mission 7
+Pull Boxes remains the separate partial-removal workflow.
 
 ---
 

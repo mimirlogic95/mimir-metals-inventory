@@ -365,6 +365,15 @@ The pallet still receives a pallet ID and complete transaction history.
 
 It simply skips warehouse storage.
 
+In Mission 11, a created hot-job pallet stages from packing (or no location)
+before dispatch. Staging preserves its current quantity and means **NOT SHIPPED
+YET**. A stored rack pallet may stage or dispatch directly. Dispatch ships the
+entire *remaining* pallet quantity, including a partial or final-box pallet;
+it is not a replacement for a partial Pull Boxes operation. After dispatch,
+current facility boxes/pieces are zero and current location is clear, while
+the immutable shipment event preserves the actual shipped quantity, source,
+actor, timestamp, and optional PO/BOL references. Held pallets cannot ship.
+
 ---
 
 ## Pallet History

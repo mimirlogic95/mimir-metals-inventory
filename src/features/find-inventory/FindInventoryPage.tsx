@@ -325,6 +325,12 @@ function PalletDetail({
       >
         COUNT INVENTORY
       </Link>
+      <Link
+        to={`/shipping?code=${encodeURIComponent(pallet.pallet_code)}`}
+        className="mt-3 flex min-h-14 items-center justify-center rounded-xl border-2 border-[#111d2d] bg-white px-5 py-3 text-base font-black text-[#111d2d] focus-visible:outline-4 focus-visible:outline-amber-500"
+      >
+        SHIPPING
+      </Link>
     </section>
   );
 }

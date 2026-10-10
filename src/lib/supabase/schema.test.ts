@@ -3,6 +3,8 @@ import createPalletMigrationSql from '../../../supabase/migrations/2026100420000
 import storePalletMigrationSql from '../../../supabase/migrations/20261004210000_add_store_pallet_rpc.sql?raw';
 import countPalletMigrationSql from '../../../supabase/migrations/20261009120000_add_count_pallet_rpc.sql?raw';
 import adjustmentDecisionsMigrationSql from '../../../supabase/migrations/20261009180000_add_supervisor_adjustment_decisions.sql?raw';
+import shippingMigrationSql from '../../../supabase/migrations/20261010120000_add_shipping_dispatch.sql?raw';
+import inactiveSourceMigrationSql from '../../../supabase/migrations/20261010130000_allow_shipping_from_inactive_sources.sql?raw';
 import seedSql from '../../../supabase/seed.sql?raw';
 
 const v1Tables = [
@@ -325,6 +327,60 @@ describe('supervisor adjustment decision migration source', () => {
     expect(adjustmentDecisionsMigrationSql).not.toMatch(
       /grant execute[^;]+to\s+(public|anon)/is,
     );
+  });
+});
+
+describe('Shipping protected operation source', () => {
+  it('enforces facility-remaining quantity and immutable dispatch evidence', () => {
+    expect(shippingMigrationSql).toContain(
+      'pallets_shipped_has_no_facility_inventory',
+    );
+    expect(shippingMigrationSql).toContain(
+      'current_boxes = 0, current_pieces = 0',
+    );
+    expect(shippingMigrationSql).toContain(
+      "current_location_id = null, lifecycle_status = 'shipped'",
+    );
+    expect(shippingMigrationSql).toContain(
+      'selected_pallet.current_boxes, -selected_pallet.current_boxes, 0',
+    );
+    expect(shippingMigrationSql).toContain(
+      'selected_pallet.current_pieces, -selected_pallet.current_pieces, 0',
+    );
+    expect(shippingMigrationSql).toContain("'shipping_staging', actor_id");
+  });
+
+  it('locks reviewed state and limits execution to active authenticated users', () => {
+    expect(shippingMigrationSql).toContain('actor_id uuid := auth.uid()');
+    expect(shippingMigrationSql).toContain(
+      'selected_pallet.inventory_version <> p_expected_inventory_version',
+    );
+    expect(shippingMigrationSql).toContain('for update;');
+    expect(shippingMigrationSql).toContain('pg_catalog.pg_advisory_xact_lock');
+    expect(shippingMigrationSql).toContain(
+      "security definer set search_path = ''",
+    );
+    expect(shippingMigrationSql).toContain('from public, anon, authenticated;');
+    expect(shippingMigrationSql).not.toMatch(
+      /grant execute[^;]+to\s+(public|anon)/is,
+    );
+  });
+
+  it('allows release from inactive sources without broadening dispatch privileges', () => {
+    expect(inactiveSourceMigrationSql).toContain(
+      'create or replace function public.ship_pallet',
+    );
+    expect(inactiveSourceMigrationSql).not.toContain(
+      'not source_location.active',
+    );
+    expect(inactiveSourceMigrationSql).toContain(
+      "security definer set search_path = ''",
+    );
+    expect(inactiveSourceMigrationSql).toContain('actor_id uuid := auth.uid()');
+    expect(inactiveSourceMigrationSql).toContain(
+      'from public, anon, authenticated;',
+    );
+    expect(inactiveSourceMigrationSql).toContain('to authenticated;');
   });
 });
 

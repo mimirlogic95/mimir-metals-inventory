@@ -153,6 +153,9 @@ describe('FindInventoryPage', () => {
     expect(
       within(detail).getByRole('link', { name: 'COUNT INVENTORY' }),
     ).toHaveAttribute('href', '/count?code=MM-P-0000007');
+    expect(
+      within(detail).getByRole('link', { name: 'SHIPPING' }),
+    ).toHaveAttribute('href', '/shipping?code=MM-P-0000007');
   });
 
   it('shows no available inventory without including held pallets', async () => {

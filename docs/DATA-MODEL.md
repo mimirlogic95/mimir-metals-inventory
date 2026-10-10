@@ -786,6 +786,12 @@ Should equal:
 
 ### current_boxes
 
+Mission 11 defines `current_boxes` and `current_pieces` as physical inventory
+remaining in the facility. Shipping staging preserves them. Dispatch sets both
+to zero and clears `current_location_id`; the immutable `shipped` event preserves
+the actual quantity dispatched in its before/change/after fields. Original
+packing quantities, snapshots, `packed_at`, identity, and prior history remain.
+
 Type:
 
 `integer`
@@ -936,6 +942,10 @@ and current boxes are greater than zero:
 If current boxes equal zero and the pallet has shipped:
 
 `SHIPPED`
+
+A Mission 11 check constraint requires a shipped pallet to have zero current
+boxes/pieces and no current location. Zero alone does not imply shipment;
+lifecycle remains authoritative.
 
 ---
 
@@ -1770,6 +1780,11 @@ V1 does not require a separate shipping-order system.
 
 PO and BOL references may be stored directly on relevant inventory transactions.
 
+For V1 dispatch, both are optional, trimmed to at most 100 characters, and
+stored on the immutable `shipped` event when supplied. An optional note is
+limited to 200 characters. Multiple pallets may share a BOL; it is neither a
+unique shipment ID nor an idempotency key.
+
 Examples:
 
 - Box pull
@@ -1779,6 +1794,38 @@ Examples:
 This avoids building an ERP shipping module before it is needed.
 
 A separate shipping-order model can be added later if requirements justify it.
+
+## Mission 11 staging and dispatch
+
+`stage_pallet_for_shipping` accepts a reviewed `created` pallet in packing or
+without a location, or a reviewed `stored` pallet in a rack. It moves the pallet
+to an active `shipping_staging` location, changes lifecycle, preserves current
+boxes/pieces and FIFO age, and writes one zero-delta `shipping_staging` event
+with old/new location IDs. Shared staging may hold multiple pallets. Created
+hot jobs must stage before dispatch; held or shipped pallets cannot stage.
+
+`ship_pallet` accepts a reviewed stored-rack or shipping-staging pallet. It
+locks and checks lifecycle, location, both quantities, and monotonic
+`inventory_version`, then atomically sets lifecycle `shipped`, location null,
+and current boxes/pieces zero. The immutable `shipped` event records previous
+boxes/pieces, their negative changes, zero after values, source location,
+actor, database timestamp, optional references/note, and idempotency key.
+The event's previous quantity is the one authoritative shipped quantity; no
+second shipment-quantity field or table is introduced. A partial pallet ships
+its *remaining* current boxes, not its original packing quantity.
+
+The source location must still exist and match the pallet's reviewed current
+location and lifecycle type. Its `active` flag does not prevent shipping
+inventory already there: deactivation restricts new arrivals, not release.
+New staging destinations must remain active.
+
+Both protected functions derive the actor from `auth.uid()`, require an active
+worker or supervisor, serialize retries by key before locking the pallet, and
+return the original event on exact retry. Changed actor or material request
+fields with that key conflict. The pallet is locked before location rows;
+staging locks source/destination rows in ID order. Browser roles remain
+read-only. Find/FIFO still explicitly requires `stored` rack lifecycle, not
+merely positive quantity.
 
 ---
 

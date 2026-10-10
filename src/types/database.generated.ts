@@ -654,6 +654,69 @@ export type Database = {
           transaction_id: string
         }[]
       }
+      ship_pallet: {
+        Args: {
+          p_bol_reference: string
+          p_expected_current_boxes: number
+          p_expected_current_location_id: string
+          p_expected_current_pieces: number
+          p_expected_inventory_version: number
+          p_expected_lifecycle_status: Database["public"]["Enums"]["pallet_lifecycle_status"]
+          p_idempotency_key: string
+          p_pallet_code: string
+          p_po_reference: string
+          p_reason_notes: string
+        }
+        Returns: {
+          actor_name: string
+          actor_user_id: string
+          bol_reference: string
+          current_boxes: number
+          current_pieces: number
+          description: string
+          lifecycle_status: Database["public"]["Enums"]["pallet_lifecycle_status"]
+          pallet_code: string
+          pallet_id: string
+          part_number: string
+          po_reference: string
+          reason_notes: string
+          shipped_at: string
+          shipped_boxes: number
+          shipped_pieces: number
+          source_location_code: string
+          source_location_id: string
+          transaction_id: string
+        }[]
+      }
+      stage_pallet_for_shipping: {
+        Args: {
+          p_destination_location_id: string
+          p_expected_current_boxes: number
+          p_expected_current_location_id: string
+          p_expected_current_pieces: number
+          p_expected_inventory_version: number
+          p_expected_lifecycle_status: Database["public"]["Enums"]["pallet_lifecycle_status"]
+          p_idempotency_key: string
+          p_pallet_code: string
+        }
+        Returns: {
+          actor_name: string
+          actor_user_id: string
+          current_boxes: number
+          current_pieces: number
+          description: string
+          lifecycle_status: Database["public"]["Enums"]["pallet_lifecycle_status"]
+          pallet_code: string
+          pallet_id: string
+          part_number: string
+          previous_location_code: string
+          previous_location_id: string
+          staged_at: string
+          staging_location_code: string
+          staging_location_id: string
+          transaction_id: string
+        }[]
+      }
       store_pallet: {
         Args: {
           p_destination_location_id: string

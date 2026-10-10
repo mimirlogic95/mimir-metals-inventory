@@ -140,6 +140,39 @@ Test:
 - 1 of 48 boxes = PARTIAL
 - 0 boxes + shipped state = SHIPPED
 
+Mission 11 enforces facility-remaining accounting: staging preserves current
+boxes/pieces; dispatch sets both to zero and clears current location while
+the immutable `shipped` event records the full negative change from the actual
+remaining balance. The old Find fixture with a positive shipped balance is
+replaced with a realistic zero-balance shipped fixture. Find must still filter
+by `stored` lifecycle, not just positive quantity.
+
+After confirming the CLI link is **Mimir Metals Inventory Development**, run
+`supabase/tests/shipping_dispatch.sql` via `db query --linked --file`. It begins
+one transaction and ends with `ROLLBACK`; users, pallets, and events are
+fictional. It checks authorization, RPC grants/search paths, read-only browser
+tables, staging from rack/packing/unlocated hot jobs, shared staging capacity,
+direct final-box dispatch, exact retry, stale version/location, held/shipped
+rejection, reference normalization, audit math, quantity/location/packing
+preservation, and forced-audit-failure rollback. Persistent parallel races and
+browser dispatch require separate fixture-specific authorization; rollback-only
+SQL does not prove a live two-connection race.
+
+The follow-up `20261010130000_allow_shipping_from_inactive_sources.sql`
+replaces only `ship_pallet`: existing pallets may dispatch from an inactive
+rack or shipping-staging source, while staging into an inactive destination
+still fails. The same rollback-only suite covers both inactive sources,
+shipment audit math, exact retries, held/unauthorized/stale rejection, and
+inactive-destination denial. No fixture or active-flag change persists.
+
+The guarded `shipping_dispatch_concurrency.mjs` checks the exact development
+project and five dedicated open `M11-LIVE-RACK-01`–`05` fixtures before its
+four persistent races. `shipping_dispatch_browser_fixtures.mjs` similarly
+checks the exact project, active fictional worker, unused fixture identifiers,
+and empty `M11-BROWSER-RACK-01` before creating the two approved browser
+pallets. Both scripts have a no-write `--verify-only` mode; `--execute-approved`
+requires separate fixture-specific authorization and preserves audit history.
+
 Do not store FULL/PARTIAL as a separate source of truth unless requirements change.
 
 ---
@@ -907,9 +940,9 @@ Expect:
 Steps:
 
 1. Create pallet.
-2. Choose HOT JOB / SHIPPING.
+2. Open SHIPPING using the created pallet code.
 3. Verify no rack assignment is required.
-4. Move to SHIPPING STAGING.
+4. Review and confirm move to SHIPPING STAGING.
 5. Ship pallet.
 
 Expect:

@@ -45,6 +45,11 @@ const AdjustmentReviewPage = lazy(async () => {
   return { default: module.AdjustmentReviewPage };
 });
 
+const ShippingPage = lazy(async () => {
+  const module = await import('@/features/shipping/ShippingPage');
+  return { default: module.ShippingPage };
+});
+
 export function AppRoutes() {
   return (
     <Routes>
@@ -113,6 +118,14 @@ export function AppRoutes() {
           </Suspense>
         }
       />
+      <Route
+        path="/shipping"
+        element={
+          <Suspense fallback={<RouteLoadingState title="Shipping" />}>
+            <ShippingPage />
+          </Suspense>
+        }
+      />
       {taskRoutes
         .filter(
           (task) =>
@@ -122,7 +135,8 @@ export function AppRoutes() {
             task.path !== '/pull' &&
             task.path !== '/move' &&
             task.path !== '/count' &&
-            task.path !== '/adjustments',
+            task.path !== '/adjustments' &&
+            task.path !== '/shipping',
         )
         .map((task) => (
           <Route

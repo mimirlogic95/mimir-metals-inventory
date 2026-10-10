@@ -493,6 +493,9 @@ select pg_temp.assert_true(
 update public.pallets
 set
   lifecycle_status = 'shipped',
+  current_boxes = 0,
+  current_pieces = 0,
+  current_location_id = null,
   lifecycle_status_before_hold = null,
   hold_reason = null
 where id = '91000000-0000-4000-8000-000000000001';

@@ -280,7 +280,7 @@ approve_adjustment(...)
 reject_adjustment(...)
 place_hold(...)
 release_hold(...)
-stage_for_shipping(...)
+stage_pallet_for_shipping(...)
 ship_pallet(...)
 ```
 
@@ -569,6 +569,16 @@ Hold placement and release should be recorded as transactions.
 ---
 
 # Shipping Security
+
+Mission 11 staging and dispatch use protected authenticated-only RPCs with an
+empty fixed search path, fully qualified tables, and actors from `auth.uid()`.
+An active worker or supervisor is required. Browser roles have no direct
+pallet-update or transaction-insert privilege. Each RPC locks the pallet and
+checks reviewed version, quantity, lifecycle, and location. Held or shipped
+pallets cannot be staged or dispatched again. Exact retries return the original
+saved event; a changed payload or actor cannot claim its key. Dispatch and
+immutable shipment history commit or roll back together. No offline shipping
+write is queued.
 
 Shipping operations should verify:
 

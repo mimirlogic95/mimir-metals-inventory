@@ -514,7 +514,7 @@ approve_adjustment(...)
 reject_adjustment(...)
 place_hold(...)
 release_hold(...)
-stage_for_shipping(...)
+stage_pallet_for_shipping(...)
 ship_pallet(...)
 ```
 
@@ -538,6 +538,16 @@ Mission 5 adds `store_pallet` under the same security boundary. It accepts a cre
 Mission 7 adds `pull_boxes` under the same browser-read-only boundary. It accepts a pallet code, positive whole-box removal, both expected reviewed balances, a retry key, and optional PO/BOL references. It derives the actor, serializes matching retry keys, locks the pallet, rejects stale or ineligible state, and uses the pallet packing snapshot for authoritative piece arithmetic. Pallet quantity and one append-only `box_pull` event commit or roll back together. Exact retries return the original event; changed requests and actors cannot claim its key. A pull cannot consume the final boxes until Shipping defines the terminal transition. No RLS policy or direct browser write grant is broadened.
 
 Mission 8 adds `move_pallet` with the same fixed empty search path, authenticated-only execution, and no direct browser write grants. It accepts the reviewed source location, different rack destination, and idempotency key. After the pallet row lock it rejects non-stored, held, shipped, non-rack, and stale-source states; it then locks source/destination location rows in stable ID order, rechecks destination occupancy, updates only current location, and writes one zero-quantity-change `moved` event atomically. Exact retries return the original event from history before live-state validation. Quantity, packing snapshots, lifecycle, and `packed_at` are preserved; Find refetches current rack while FIFO order remains tied to packed age.
+
+Mission 11 adds `stage_pallet_for_shipping` and `ship_pallet` under the same
+authenticated-only `SECURITY DEFINER` boundary. Both validate an active role,
+serialize idempotency keys, lock the pallet, compare reviewed version/quantity/
+lifecycle/location, then lock affected location rows. Staging changes lifecycle
+and location with a zero-delta event. Dispatch from a stored rack or shipping
+staging clears location and current facility quantity, changes lifecycle to
+`shipped`, and writes a negative-delta event preserving actual shipped quantity
+and references. Created hot jobs stage first. Find retains its explicit
+stored-rack filter; browser table-write grants do not broaden. See ADR-0004.
 
 Pallet codes come from a protected PostgreSQL sequence and are formatted server-side. The same function serializes matching idempotency keys before checking history, so simultaneous retries return one pallet. The browser never supplies authoritative pieces, packing snapshots, pallet codes, actors, or timestamps.
 
