@@ -1162,6 +1162,26 @@ For each inventory-changing operation verify the transaction records:
 
 The transaction should contain enough information to explain the change later.
 
+## Mission 12 History validation
+
+History tests cover code normalization and reload-safe lookup, shipped-zero
+current state versus original and dispatched quantities, actor fallback,
+signed box/piece formatting, all V1 event labels plus unknown fallback,
+Count/request observation versus approved correction, rejection, staging versus
+dispatch, safe read failures, and bounded older-event pagination. The API tests
+assert timestamp-and-ID ordering, keyset cursor filtering, explicit profile
+projection, minimal transaction fields (no unrestricted notes or metadata),
+and rejection of inactive profiles in the UI. These tests do not
+claim the pre-existing broad authenticated table-read RLS is hardened.
+
+Against the verified fictional development database, compare representative
+Pull, Move, Count, adjustment, hot-job shipment, and direct-shipment records
+with the rendered timeline using read-only queries. Never create a transaction
+solely to populate History. If older-page loading fails, the UI must retain
+already loaded events and warn that the timeline is incomplete. Browser checks
+should include 320px, 390px, and 768px widths where permitted; unverified
+screens must be reported, not assumed to pass.
+
 ---
 
 # Test Data

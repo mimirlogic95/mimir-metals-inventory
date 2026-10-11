@@ -402,6 +402,17 @@ TanStack Query should manage:
 - Refetching
 - Cache invalidation
 
+Mission 12 History uses the same authenticated typed Supabase client to read a
+single pallet and bounded pages of its transactions. It adds no schema object
+or browser write grant. The page is keyed by the normalized pallet code, while
+transaction pages use `occurred_at DESC, id DESC` and a strict keyset cursor;
+new events therefore do not shift older-page offsets. It selects profile
+display names and location codes through existing foreign keys, and linked
+adjustment details remain subject to the existing request RLS policy. An
+active-profile check in the application improves the worker experience but is
+not a replacement for database RLS. The broader pre-existing authenticated
+SELECT policies remain a separate production-hardening concern.
+
 Do not introduce a global state library unless a real need appears.
 
 ---

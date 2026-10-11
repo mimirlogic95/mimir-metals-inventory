@@ -392,6 +392,16 @@ Example:
 
 The system stores both current state and historical events.
 
+V1 History looks up one pallet by its permanent code, including shipped pallets,
+and shows its authoritative current state separately from originally packed
+quantity and the quantity recorded in a shipment event. It presents every
+authorized saved event newest-first, with older events available on demand.
+Physical Count and adjustment requests are observations until an approval
+actually changes inventory; a rejection never changes the balance. Shipping
+staging changes location but not quantity, while dispatch reduces facility
+inventory to zero. History is read-only and does not broaden Find's definition
+of available rack stock.
+
 ---
 
 ## V1 Scope

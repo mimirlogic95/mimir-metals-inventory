@@ -156,6 +156,9 @@ describe('FindInventoryPage', () => {
     expect(
       within(detail).getByRole('link', { name: 'SHIPPING' }),
     ).toHaveAttribute('href', '/shipping?code=MM-P-0000007');
+    expect(
+      within(detail).getByRole('link', { name: 'VIEW HISTORY' }),
+    ).toHaveAttribute('href', '/history?code=MM-P-0000007');
   });
 
   it('shows no available inventory without including held pallets', async () => {

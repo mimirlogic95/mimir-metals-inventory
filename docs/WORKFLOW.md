@@ -590,6 +590,24 @@ History is read-only.
 
 Historical transactions should not be edited or deleted through the normal worker interface.
 
+Home → HISTORY accepts a manual pallet code and supports a reload-safe
+`/history?code=...` link. Find's stored-rack pallet detail offers VIEW HISTORY;
+History can also find a shipped pallet even though Find excludes it from
+available inventory. The top of the page separates current facility quantity,
+originally packed quantity, and actual quantity dispatched. The timeline uses
+saved database events, newest first, with a bounded LOAD OLDER EVENTS action.
+Each event shows its actor, local display time with time-zone label, saved
+quantity before/change/after values, and relevant source/destination locations.
+
+A matched Count and a discrepancy request record evidence with zero inventory
+change. A permitted request detail is marked **PROPOSED — NOT APPLIED**; only
+approval displays the applied correction. Rejection shows zero change and, when
+request access permits, the decision reason. Staging is not shipment: it changes location with zero delta.
+The shipped event shows actual dispatched boxes/pieces, negative changes, source
+location, and optional PO/BOL. If a read fails after some events are loaded,
+the screen warns that History is incomplete rather than silently claiming a
+complete timeline. No History control can submit an inventory write.
+
 ---
 
 # Pallet Statuses

@@ -2,8 +2,6 @@ import { lazy, Suspense } from 'react';
 import { Navigate, Route, Routes } from 'react-router-dom';
 
 import { HomePage } from '@/features/home/HomePage';
-import { TaskPlaceholderPage } from '@/features/task-placeholder/TaskPlaceholderPage';
-import { taskRoutes } from '@/types/navigation';
 
 const CreatePalletPage = lazy(async () => {
   const module = await import('@/features/create-pallet/CreatePalletPage');
@@ -48,6 +46,11 @@ const AdjustmentReviewPage = lazy(async () => {
 const ShippingPage = lazy(async () => {
   const module = await import('@/features/shipping/ShippingPage');
   return { default: module.ShippingPage };
+});
+
+const PalletHistoryPage = lazy(async () => {
+  const module = await import('@/features/pallet-history/PalletHistoryPage');
+  return { default: module.PalletHistoryPage };
 });
 
 export function AppRoutes() {
@@ -126,25 +129,14 @@ export function AppRoutes() {
           </Suspense>
         }
       />
-      {taskRoutes
-        .filter(
-          (task) =>
-            task.path !== '/create-pallet' &&
-            task.path !== '/store' &&
-            task.path !== '/find' &&
-            task.path !== '/pull' &&
-            task.path !== '/move' &&
-            task.path !== '/count' &&
-            task.path !== '/adjustments' &&
-            task.path !== '/shipping',
-        )
-        .map((task) => (
-          <Route
-            key={task.path}
-            path={task.path}
-            element={<TaskPlaceholderPage title={task.title} />}
-          />
-        ))}
+      <Route
+        path="/history"
+        element={
+          <Suspense fallback={<RouteLoadingState title="Inventory History" />}>
+            <PalletHistoryPage />
+          </Suspense>
+        }
+      />
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );

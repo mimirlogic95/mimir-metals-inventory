@@ -262,6 +262,21 @@ The frontend should only be able to perform the minimum direct operations needed
 
 Sensitive inventory mutations should preferably happen through protected database functions rather than open table updates.
 
+Mission 12 History uses existing authenticated SELECT policies only. Both
+workers and supervisors may read pallet transaction events; linked adjustment
+request details remain limited to the requester or an active supervisor by the
+existing request policy. The UI selects only profile display names, not
+`auth.users` or private authentication metadata, and offers no inventory
+mutation. The UI also hides adjustment reason notes if the linked request is
+not visible, while retaining the permitted transaction event. The History
+transaction query omits unrestricted reason notes, reason codes, and JSON
+metadata; it retrieves adjustment notes only through the RLS-protected request
+join. Its active-profile check is a presentation guard, not a security boundary:
+the pre-existing broad authenticated SELECT policies on pallets,
+profiles, and transactions still permit an inactive authenticated account to
+read those tables directly. This requires a dedicated RLS hardening review
+before production use; History does not claim to fix cross-company isolation.
+
 ---
 
 # Protected Database Functions

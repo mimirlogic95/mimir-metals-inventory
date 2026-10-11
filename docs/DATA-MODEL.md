@@ -1245,6 +1245,30 @@ Type:
 
 ---
 
+## Read-only pallet History interpretation
+
+History reads one pallet's current row and its immutable
+`inventory_transactions` rows. It orders events by `occurred_at DESC, id DESC`
+and loads older events with a strict keyset cursor on those same fields. The
+database `timestamptz` remains authoritative; the browser labels its local-time
+presentation. Event actors are displayed from the limited profile display-name
+field, with a neutral fallback if it is unavailable. Source/destination names
+come from the historical location foreign keys, not the pallet's current rack.
+
+The linked `adjustment_request_id` may provide the counted quantity and current
+decision status only to a requester or active supervisor allowed by its RLS
+policy. The `adjustment_requested` transaction itself is a zero-delta audit
+event, not an applied box difference. Approval's transaction contains the
+actual before/change/after correction. Rejection is zero delta. A worker who
+cannot read the linked request still sees the permitted transaction event but
+not the request-specific proposal or reason notes. History does not select the
+transaction table's broadly readable `reason_notes`; permitted request and
+decision notes come from the RLS-protected linked request. History also omits
+transaction JSON metadata; a matched Count's saved before/after values are the
+observed quantity. History never derives shipped quantity from the shipped
+pallet's current zero balance; it reads the `shipped` event's
+previous quantity and negative change. These reads add no new source of truth.
+
 # Table: adjustment_requests
 
 ## Purpose
